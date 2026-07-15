@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env
+
+# SvelteKit / Node
+node_modules/
+.svelte-kit/
+build/
+.env
+
+# IDE
+.vscode/
+.history/
+
+# OS
+.DS_Store
+Thumbs.db
