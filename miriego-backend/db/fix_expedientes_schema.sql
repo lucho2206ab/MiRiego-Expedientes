@@ -9,6 +9,7 @@ ALTER TABLE expedientes ADD COLUMN IF NOT EXISTS iniciador_cc  VARCHAR(20);
 ALTER TABLE expedientes ADD COLUMN IF NOT EXISTS iniciador_pp  VARCHAR(20);
 ALTER TABLE expedientes ADD COLUMN IF NOT EXISTS inspeccion_id  INTEGER;
 ALTER TABLE expedientes ADD COLUMN IF NOT EXISTS fecha_vencimiento TIMESTAMPTZ;
+ALTER TABLE expedientes ADD COLUMN IF NOT EXISTS expediente_acumulado_numero VARCHAR(40);
 
 -- 2. Agregar columna faltante en pases
 ALTER TABLE pases ADD COLUMN IF NOT EXISTS fecha_vencimiento TIMESTAMPTZ;

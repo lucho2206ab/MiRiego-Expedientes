@@ -85,7 +85,9 @@ def listar_asociaciones(db: Session = Depends(get_db)):
 @router.get("/inspecciones", response_model=list[InspeccionOut])
 def listar_inspecciones(db: Session = Depends(get_db)):
     try:
-        return db.scalars(select(Inspeccion).where(Inspeccion.activo.is_(True))).all()
+        return db.scalars(
+            select(Inspeccion).where(Inspeccion.activo.is_(True))
+        ).all()
     except (OperationalError, ProgrammingError) as exc:
         logger.error("Error en /catalogos/inspecciones: %s", exc)
         return []

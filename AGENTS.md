@@ -11,12 +11,12 @@ Two independent projects in a single repo (no monorepo tooling, no root `package
 | `miriego-backend/` | FastAPI + SQLAlchemy (sync) + psycopg3 + PostgreSQL | `:8000` | `miriego` schema |
 | `miriego-frontend/` | SvelteKit 2 + Svelte 4 + TypeScript + Vite + Tailwind CSS v4 | `:5174` | — |
 
-## Quick start
+## Quick start (development)
 
 ```bash
 # Backend
 cd miriego-backend
-python -m venv 
+python -m venv .venv
 venv\Scripts\activate   # Python 3.13+
 pip install -r requirements.txt
 cp .env.example .env
@@ -60,7 +60,7 @@ SQL files contain PL/pgSQL functions — use `psql -f` or pgAdmin Query Tool, ne
 | Command | Purpose |
 |---------|---------|
 | `npm run dev` | Dev server (port 5174, exposed on 0.0.0.0) |
-| `npm run build` | Production build |
+| `npm run build` | Production build (adapter-node → `build/index.js`) |
 | `npm run check` | **Type-check** via svelte-check — run before committing TS changes |
 
 ### Backend
@@ -71,6 +71,103 @@ SQL files contain PL/pgSQL functions — use `psql -f` or pgAdmin Query Tool, ne
 | `GET /health` | Health check endpoint |
 
 **No linter, formatter, or test suite is configured for either project.**
+
+## Production deployment (Windows services)
+
+The app runs as 4 Windows services on the office PC, surviving reboots without login.
+
+### Architecture
+
+```
+Internet/LAN → :80 [Caddy] ─┬─ /api/* → strip prefix → localhost:8000 [FastAPI]
+                             └─ /*     → localhost:3000 [SvelteKit SSR]
+```
+
+### Services
+
+| Service | Executable | Start type | Port |
+|---------|-----------|------------|------|
+| `postgresql-x64-18` | (Windows service) | Automatic | 5432 (localhost only) |
+| `MiRiegoAPI` | `venv\Scripts\python.exe -m uvicorn` | Automatic | 8000 (localhost only) |
+| `MiRiegoFrontend` | `node.exe build\index.js` | Automatic | 3000 (localhost only) |
+| `MiRiegoProxy` | `caddy_windows_amd64.exe` | Automatic | 80 (LAN-facing) |
+
+### Service configuration (NSSM)
+
+**NSSM executable:** `C:\nssm\nssm-2.24\win64\nssm.exe` (64-bit)
+
+**MiRiegoAPI:**
+- Path: `C:\Users\Mesa de Entradas\Documents\miriego-expedientes\miriego-backend\venv\Scripts\python.exe`
+- AppParameters: `-m uvicorn app.main:app --host 0.0.0.0 --port 8000`
+- AppDirectory: `C:\Users\Mesa de Entradas\Documents\miriego-expedientes\miriego-backend`
+- AppEnvironmentExtra: `PYTHONUNBUFFERED=1`, `PYTHONIOENCODING=utf-8`
+- Logs: `C:\MiRiego-Logs\backend-stdout.log`, `C:\MiRiego-Logs\backend-stderr.log`
+
+**MiRiegoFrontend:**
+- Path: `C:\Program Files\nodejs\node.exe`
+- AppParameters: `build\index.js`
+- AppDirectory: `C:\Users\Mesa de Entradas\Documents\miriego-expedientes\miriego-frontend`
+- AppEnvironmentExtra: `PORT=3000`
+- Logs: `...\miriego-frontend\logs\stdout.log`, `...\miriego-frontend\logs\stderr.log`
+
+**MiRiegoProxy:**
+- Path: `C:\caddy\caddy_windows_amd64.exe`
+- AppParameters: `run --config "C:\caddy\Caddyfile.txt"`
+- AppDirectory: `C:\caddy`
+- Logs: `C:\caddy\logs\stdout.log`, `C:\caddy\logs\stderr.log`
+
+### Caddyfile
+
+Location: `C:\caddy\Caddyfile.txt`
+
+```
+:80 {
+    handle /api/* {
+        uri strip_prefix /api
+        reverse_proxy localhost:8000
+    }
+
+    handle {
+        reverse_proxy localhost:3000
+    }
+}
+```
+
+### Firewall
+
+Rule: `MiRiego - HTTP (80)` — Inbound, TCP port 80, Allow, all profiles.
+
+### Install/reinstall script
+
+`install-services.bat` in the repo root. Must be run **as Administrator**. Cleans up existing services, creates fresh ones, starts them, and creates the firewall rule.
+
+### Rebuilding after code changes
+
+```bash
+# After any frontend change:
+cd miriego-frontend
+npm run build
+net stop MiRiegoFrontend && net start MiRiegoFrontend
+
+# After any backend change:
+net stop MiRiegoAPI && net start MiRiegoAPI
+# (No rebuild needed — Python runs from source)
+```
+
+### Resilience test (PC reboot)
+
+```powershell
+# From PowerShell Admin:
+Restart-Computer -Force
+
+# After 2-3 minutes (without logging in), from another PC on the LAN:
+# Open http://<this-PC-IP>/ in a browser
+
+# Or after logging in, verify services:
+Get-Service postgresql-x64-18,MiRiegoAPI,MiRiegoFrontend,MiRiegoProxy | Format-Table Name,Status,StartType
+```
+
+All 4 must show `Running` / `Automatic`.
 
 ## Architecture
 
@@ -86,12 +183,12 @@ SQL files contain PL/pgSQL functions — use `psql -f` or pgAdmin Query Tool, ne
 
 ### Frontend (`miriego-frontend/`)
 - **CSS:** Tailwind CSS v4 via `@tailwindcss/vite` plugin — no `postcss.config.js` or `tailwind.config.js` needed; theme tokens in `src/app.css` via `@theme {}`
+- **Adapter:** `@sveltejs/adapter-node` — builds to `build/index.js` for production SSR
 - **Vite config:** `vite.config.js` (plain JS, not TS)
-- **API client:** `src/lib/api/client.ts` — `apiFetch<T>()` wrapper around fetch
+- **API client:** `src/lib/api/client.ts` — `apiFetch<T>()` wrapper around fetch. Uses `PUBLIC_API_URL` env var (default `/api` in production, proxied through Caddy)
 - **API modules:** `src/lib/api/expedientes.ts`, `src/lib/api/reclamos.ts`, `src/lib/api/catalogos.ts`
 - **Types:** `src/lib/types/expediente.ts`, `src/lib/types/reclamo.ts`
 - **Routes:** `src/routes/expedientes/` (list, `[id]`, `nuevo`), `src/routes/reclamos/` (list, `[id]`, `nuevo`)
-- **API URL:** `PUBLIC_API_URL` env var (default `http://localhost:8000`)
 - **SvelteKit conventions:** load functions in `+page.ts`, components in `+page.svelte`
 
 ## Gotchas
@@ -108,3 +205,7 @@ SQL files contain PL/pgSQL functions — use `psql -f` or pgAdmin Query Tool, ne
 - **SQL enum gotchas:** `estado_expediente` uses `pase_pendiente` (not `pase`); `estado_reclamo` includes `derivado_expediente`; `reclamos.expediente_id` was added after initial schema via `fix_expedientes_schema.sql`.
 - **No auth yet** — both READMEs list it as next step.
 - **`.env.example` in backend** has `FRONTEND_ORIGIN=http://localhost:5175` — update to `5174` when copying.
+- **NSSM + uvicorn.exe + spaces in path:** NSSM cannot launch `uvicorn.exe` directly when the path contains spaces (e.g., "Mesa de Entradas"). Always use `python.exe -m uvicorn` as the backend service executable instead.
+- **PUBLIC_API_URL is baked at build time** — `$env/static/public` in SvelteKit. Changing `.env` requires `npm run build` + service restart to take effect.
+- **Frontend port in production is 3000** (set via `PORT` env var), not 5174. The 5174 port is only for `npm run dev`.
+- **Caddy strips `/api` prefix** before proxying to the backend, so FastAPI receives routes like `/expedientes` (without the prefix).
