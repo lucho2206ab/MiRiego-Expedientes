@@ -159,7 +159,7 @@
 					<tr class="border-b border-border hover:bg-bg">
 						<td class="py-2.5 px-2"><a href={`/reclamos/${r.id}`} class="text-primary hover:underline">{r.codigo_reclamo}</a></td>
 						<td class="py-2.5 px-2">{r.titulo}</td>
-						<td class="py-2.5 px-2">{r.reclamante_nombre ?? '—'}</td>
+						<td class="py-2.5 px-2">{(r.reclamante_nombre ?? '') + ' ' + (r.reclamante_apellido ?? '')}</td>
 						<td class="py-2.5 px-2">{nombreInspeccion(r.inspeccion_id)}</td>
 						<td class="py-2.5 px-2">{nombreTipo(r.tipo_id)}</td>
 						<td class="py-2.5 px-2"><span style="color: {colorPrioridad(r.prioridad)}" class="font-semibold">{r.prioridad}</span></td>

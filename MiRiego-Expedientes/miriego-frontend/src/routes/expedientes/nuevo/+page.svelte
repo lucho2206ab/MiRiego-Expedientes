@@ -17,13 +17,15 @@
 	let iniciador_cc = r.cc;
 	let iniciador_pp = r.pp;
 	let sector_actual_id: number | undefined;
-	let sector_opcion = '';
+	let sector_opcion: number | 'otro' | '' = '';
 	let sector_nombre_manual = '';
 	let inspeccion_id: number | undefined;
 	let fecha_inicio = '';
 	let fecha_vencimiento = '';
 	let es_expediente_electronico = false;
 	let gde_numero = '';
+	let es_expediente_acumulado = false;
+	let expediente_acumulado_numero = '';
 
 	let enviando = false;
 	let error = '';
@@ -33,7 +35,7 @@
 			error = 'Completá tipo de expediente.';
 			return;
 		}
-		if (sector_opcion !== 'otro' && !sector_actual_id) {
+		if (!sector_opcion) {
 			error = 'Seleccioná un sector inicial.';
 			return;
 		}
@@ -63,12 +65,16 @@
 
 			if (sector_opcion === 'otro') {
 				payload.sector_nombre = sector_nombre_manual.toUpperCase();
-			} else {
-				payload.sector_actual_id = sector_actual_id;
+			} else if (typeof sector_opcion === 'number') {
+				payload.sector_actual_id = sector_opcion;
 			}
 
 			if (es_expediente_electronico && gde_numero.trim()) {
 				payload.gde_numero = gde_numero.toUpperCase();
+			}
+
+			if (es_expediente_acumulado && expediente_acumulado_numero.trim()) {
+				payload.expediente_acumulado_numero = expediente_acumulado_numero.toUpperCase();
 			}
 
 			const nuevo = await crearExpediente(payload as any);
@@ -92,6 +98,12 @@
 		</label>
 		{#if es_expediente_electronico}
 			<input id="gde-numero" bind:value={gde_numero} placeholder="Número de expediente GDE" class="w-full px-3 py-2 border border-border rounded-md text-sm mt-2" />
+		{/if}
+		<label class="flex items-center gap-2 mt-2 text-sm">
+			<input type="checkbox" bind:checked={es_expediente_acumulado} /> Expediente Acumulado
+		</label>
+		{#if es_expediente_acumulado}
+			<input id="expediente-acumulado" bind:value={expediente_acumulado_numero} placeholder="Número de expediente acumulado" class="w-full px-3 py-2 border border-border rounded-md text-sm mt-2" />
 		{/if}
 	</div>
 

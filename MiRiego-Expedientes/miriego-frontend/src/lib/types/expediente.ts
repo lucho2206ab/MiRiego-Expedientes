@@ -43,6 +43,7 @@ export interface Expediente {
 	estado: EstadoExpediente;
 	gde_numero?: string | null;
 	infogov_numero?: string | null;
+	expediente_acumulado_numero?: string | null;
 	fecha_inicio: string;
 	fecha_ultima_actualizacion: string;
 	fecha_resolucion?: string | null;
@@ -97,6 +98,7 @@ export interface ExpedienteCreatePayload {
 	sector_nombre?: string;
 	gde_numero?: string;
 	infogov_numero?: string;
+	expediente_acumulado_numero?: string;
 	fecha_inicio?: string;
 	fecha_vencimiento?: string;
 	reclamo_id?: number;
@@ -112,6 +114,7 @@ export interface ExpedienteUpdatePayload {
 	iniciador_pp?: string;
 	gde_numero?: string;
 	infogov_numero?: string;
+	expediente_acumulado_numero?: string;
 	fecha_vencimiento?: string;
 }
 

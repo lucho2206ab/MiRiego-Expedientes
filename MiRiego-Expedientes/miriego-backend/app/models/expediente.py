@@ -88,6 +88,7 @@ class Expediente(Base):
 
     gde_numero = Column(String(60))
     infogov_numero = Column(String(60))
+    expediente_acumulado_numero = Column(String(40))
 
     fecha_inicio = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     fecha_ultima_actualizacion = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

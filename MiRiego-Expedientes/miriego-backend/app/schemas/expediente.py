@@ -55,6 +55,7 @@ class ExpedienteCreate(BaseModel):
     sector_nombre: Optional[str] = None
     gde_numero: Optional[str] = None
     infogov_numero: Optional[str] = None
+    expediente_acumulado_numero: Optional[str] = None
     fecha_inicio: Optional[datetime] = None
     fecha_vencimiento: Optional[datetime] = None
     reclamo_id: Optional[int] = None
@@ -71,6 +72,7 @@ class ExpedienteUpdate(BaseModel):
     iniciador_pp: Optional[str] = None
     gde_numero: Optional[str] = None
     infogov_numero: Optional[str] = None
+    expediente_acumulado_numero: Optional[str] = None
     fecha_vencimiento: Optional[datetime] = None
 
 
@@ -92,6 +94,7 @@ class ExpedienteOut(BaseModel):
     estado: EstadoExpediente
     gde_numero: Optional[str] = None
     infogov_numero: Optional[str] = None
+    expediente_acumulado_numero: Optional[str] = None
     fecha_inicio: datetime
     fecha_ultima_actualizacion: datetime
     fecha_resolucion: Optional[datetime] = None
