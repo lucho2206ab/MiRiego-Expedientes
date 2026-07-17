@@ -50,6 +50,10 @@ psql -U postgres -d miriego -f miriego-backend/db/fix_pases_condicional.sql
 psql -U postgres -d miriego -f miriego-backend/db/fix_triggers.sql
 psql -U postgres -d miriego -f miriego-backend/db/miriego_reclamos_v2.sql
 psql -U postgres -d miriego -f miriego-backend/db/reclamos_v3_cc_pp.sql
+
+# 4. Optional migrations (new columns, indexes)
+psql -U postgres -d miriego -f miriego-backend/db/fix_iniciador_contacto.sql
+psql -U postgres -d miriego -f miriego-backend/db/add_indexes.sql
 ```
 
 SQL files contain PL/pgSQL functions — use `psql -f` or pgAdmin Query Tool, never split by `;`.
@@ -187,9 +191,11 @@ All 4 must show `Running` / `Automatic`.
 - **Vite config:** `vite.config.js` (plain JS, not TS)
 - **API client:** `src/lib/api/client.ts` — `apiFetch<T>()` wrapper around fetch. Uses `PUBLIC_API_URL` env var (default `/api` in production, proxied through Caddy)
 - **API modules:** `src/lib/api/expedientes.ts`, `src/lib/api/reclamos.ts`, `src/lib/api/catalogos.ts`
-- **Types:** `src/lib/types/expediente.ts`, `src/lib/types/reclamo.ts`
+- **Types:** `src/lib/types/expediente.ts`, `src/lib/types/reclamo.ts` — include `PaginatedResponse<T>` interface
+- **Components:** `src/lib/components/Paginacion.svelte` — reusable pagination control (← Anterior / Página X de Y / Siguiente →)
 - **Routes:** `src/routes/expedientes/` (list, `[id]`, `nuevo`), `src/routes/reclamos/` (list, `[id]`, `nuevo`)
 - **SvelteKit conventions:** load functions in `+page.ts`, components in `+page.svelte`
+- **Pagination:** Backend returns `{items, total, page, page_size}`. Frontend reads `page` from URL params, passes to API, and renders `Paginacion` component. Filters reset to page 1.
 
 ## Gotchas
 
