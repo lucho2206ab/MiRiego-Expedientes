@@ -4,20 +4,23 @@ import type {
 	ExpedienteDetalle,
 	ExpedienteCreatePayload,
 	ExpedienteUpdatePayload,
+	PaginatedResponse,
 	Pase,
 	Nota
 } from '$lib/types/expediente';
 
-export function listarExpedientes(filtros?: { sector_id?: number; estado?: string; q?: string; fecha_desde?: string; fecha_hasta?: string }) {
+export function listarExpedientes(filtros?: { sector_id?: number; estado?: string; q?: string; fecha_desde?: string; fecha_hasta?: string; page?: number; page_size?: number }) {
 	const params = new URLSearchParams();
 	if (filtros?.sector_id) params.set('sector_id', String(filtros.sector_id));
 	if (filtros?.estado) params.set('estado', filtros.estado);
 	if (filtros?.q) params.set('q', filtros.q);
 	if (filtros?.fecha_desde) params.set('fecha_desde', filtros.fecha_desde);
 	if (filtros?.fecha_hasta) params.set('fecha_hasta', filtros.fecha_hasta);
+	if (filtros?.page) params.set('page', String(filtros.page));
+	if (filtros?.page_size) params.set('page_size', String(filtros.page_size));
 
 	const query = params.toString() ? `?${params.toString()}` : '';
-	return apiFetch<Expediente[]>(`/expedientes${query}`);
+	return apiFetch<PaginatedResponse<Expediente>>(`/expedientes${query}`);
 }
 
 export function obtenerExpediente(id: number) {

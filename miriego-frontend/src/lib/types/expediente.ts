@@ -37,6 +37,8 @@ export interface Expediente {
 	iniciador_dni_cuit?: string | null;
 	iniciador_cc?: string | null;
 	iniciador_pp?: string | null;
+	iniciador_email?: string | null;
+	iniciador_telefono?: string | null;
 	regante_id?: number | null;
 	inspeccion_id?: number | null;
 	sector_actual_id: number;
@@ -49,6 +51,7 @@ export interface Expediente {
 	fecha_resolucion?: string | null;
 	fecha_archivo?: string | null;
 	fecha_vencimiento?: string | null;
+	ultimo_vencimiento?: string | null;
 }
 
 export interface Pase {
@@ -92,6 +95,8 @@ export interface ExpedienteCreatePayload {
 	iniciador_dni_cuit?: string;
 	iniciador_cc?: string;
 	iniciador_pp?: string;
+	iniciador_email?: string;
+	iniciador_telefono?: string;
 	regante_id?: number;
 	inspeccion_id?: number;
 	sector_actual_id?: number;
@@ -112,6 +117,8 @@ export interface ExpedienteUpdatePayload {
 	iniciador_dni_cuit?: string;
 	iniciador_cc?: string;
 	iniciador_pp?: string;
+	iniciador_email?: string;
+	iniciador_telefono?: string;
 	gde_numero?: string;
 	infogov_numero?: string;
 	expediente_acumulado_numero?: string;
@@ -126,3 +133,10 @@ export interface Inspeccion {
 }
 
 export type SubsectorMesaEntradas = 'Casilla de Vencimiento' | 'Notificador' | 'Reserva' | 'Archivo Mesa de Entradas' | 'Archivo Deposito';
+
+export interface PaginatedResponse<T> {
+	items: T[];
+	total: number;
+	page: number;
+	page_size: number;
+}

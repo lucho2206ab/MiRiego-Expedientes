@@ -16,6 +16,8 @@
 	let iniciador_dni_cuit = r.dni;
 	let iniciador_cc = r.cc;
 	let iniciador_pp = r.pp;
+	let iniciador_email = '';
+	let iniciador_telefono = '';
 	let sector_actual_id: number | undefined;
 	let sector_opcion: number | 'otro' | '' = '';
 	let sector_nombre_manual = '';
@@ -57,6 +59,8 @@
 				iniciador_dni_cuit: iniciador_dni_cuit ? iniciador_dni_cuit.toUpperCase() : undefined,
 				iniciador_cc: iniciador_cc ? iniciador_cc.toUpperCase() : undefined,
 				iniciador_pp: iniciador_pp ? iniciador_pp.toUpperCase() : undefined,
+				iniciador_email: iniciador_email ? iniciador_email.toLowerCase() : undefined,
+				iniciador_telefono: iniciador_telefono ? iniciador_telefono : undefined,
 				inspeccion_id: inspeccion_id || undefined,
 				fecha_inicio: fecha_inicio ? fecha_inicio + 'T00:00:00-03:00' : undefined,
 				fecha_vencimiento: fecha_vencimiento ? fecha_vencimiento + 'T00:00:00-03:00' : undefined,
@@ -155,6 +159,16 @@
 	<div>
 		<label for="pp" class="block text-sm font-medium mb-1">PP del iniciador (opcional)</label>
 		<input id="pp" bind:value={iniciador_pp} class="w-full px-3 py-2 border border-border rounded-md text-sm" />
+	</div>
+
+	<div>
+		<label for="email" class="block text-sm font-medium mb-1">Email del iniciador (opcional)</label>
+		<input id="email" type="email" bind:value={iniciador_email} placeholder="correo@ejemplo.com" class="w-full px-3 py-2 border border-border rounded-md text-sm" />
+	</div>
+
+	<div>
+		<label for="telefono" class="block text-sm font-medium mb-1">Teléfono del iniciador (opcional)</label>
+		<input id="telefono" bind:value={iniciador_telefono} placeholder="261-XXX-XXXX" class="w-full px-3 py-2 border border-border rounded-md text-sm" />
 	</div>
 
 	<div>

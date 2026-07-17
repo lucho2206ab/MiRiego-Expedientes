@@ -56,6 +56,8 @@ export function generarPdfExpediente(
 		['DNI/CUIT', expediente.iniciador_dni_cuit ?? '—'],
 		['CC', expediente.iniciador_cc ?? '—'],
 		['PP', expediente.iniciador_pp ?? '—'],
+		['Email', expediente.iniciador_email ?? '—'],
+		['Teléfono', expediente.iniciador_telefono ?? '—'],
 		['Fecha inicio', formatDate(expediente.fecha_inicio)],
 		['Fecha vencimiento', formatDate(expediente.fecha_vencimiento)],
 	);
@@ -162,12 +164,40 @@ export function generarPdfReclamo(
 		rows.push(['Dirección', reclamo.direccion_manual]);
 	}
 
-	rows.push(
-		['Creación', formatDateTime(reclamo.fecha_creacion)],
-		['Primera respuesta', formatDateTime(reclamo.fecha_primera_respuesta)],
-		['Resolución', formatDateTime(reclamo.fecha_resolucion)],
-		['Cierre', formatDateTime(reclamo.fecha_cierre)],
+	rows.push(['Creación', formatDateTime(reclamo.fecha_creacion)]);
+
+	// Primera respuesta: primer comentario no-interno
+	const primerComentario = reclamo.comentarios
+		.filter((c) => !c.es_interno)
+		.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())[0];
+	if (reclamo.fecha_primera_respuesta) {
+		rows.push([
+			'Primera respuesta',
+			`${formatDateTime(reclamo.fecha_primera_respuesta)}${primerComentario ? ' — ' + primerComentario.comentario : ''}`
+		]);
+	}
+
+	// Resolución: comentario asociado al cambio de estado a "resuelto"
+	const historialResolucion = reclamo.historial.find(
+		(h) => h.accion === 'comentario_estado' && h.estado_nuevo === 'resuelto'
 	);
+	if (reclamo.fecha_resolucion) {
+		rows.push([
+			'Resolución',
+			`${formatDateTime(reclamo.fecha_resolucion)}${historialResolucion?.observacion ? ' — ' + historialResolucion.observacion : ''}`
+		]);
+	}
+
+	// Cierre: comentario asociado al cambio de estado a "cerrado"
+	const historialCierre = reclamo.historial.find(
+		(h) => h.accion === 'comentario_estado' && h.estado_nuevo === 'cerrado'
+	);
+	if (reclamo.fecha_cierre) {
+		rows.push([
+			'Cierre',
+			`${formatDateTime(reclamo.fecha_cierre)}${historialCierre?.observacion ? ' — ' + historialCierre.observacion : ''}`
+		]);
+	}
 
 	if (reclamo.numero_expediente) {
 		rows.push(['Expediente vinculado', reclamo.numero_expediente]);

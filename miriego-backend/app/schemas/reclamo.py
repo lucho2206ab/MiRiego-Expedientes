@@ -262,3 +262,14 @@ class ReclamoDetalleOut(ReclamoOut):
     comentarios: list[ReclamoComentarioOut] = []
     adjuntos: list[ReclamoAdjuntoOut] = []
     historial: list[ReclamoHistorialOut] = []
+
+
+# ---------------------------------------------------------------------------
+# Respuesta paginada
+# ---------------------------------------------------------------------------
+
+class PaginatedReclamos(BaseModel):
+    items: list[ReclamoOut]
+    total: int
+    page: int
+    page_size: int

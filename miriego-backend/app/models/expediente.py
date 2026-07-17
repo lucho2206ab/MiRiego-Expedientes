@@ -80,6 +80,8 @@ class Expediente(Base):
     iniciador_dni_cuit = Column(String(20))
     iniciador_cc = Column(String(20))
     iniciador_pp = Column(String(20))
+    iniciador_email = Column(String(150))
+    iniciador_telefono = Column(String(40))
     regante_id = Column(Integer)  # FK lógica al módulo de reclamos
     inspeccion_id = Column(Integer)  # FK lógica a inspecciones (asignación del expediente a una inspección)
 

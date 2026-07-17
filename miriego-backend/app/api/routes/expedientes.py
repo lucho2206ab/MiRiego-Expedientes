@@ -20,11 +20,13 @@ from sqlalchemy import select, or_
 from app.core.database import get_db
 from app.models.expediente import Expediente, Pase, Nota, Sector
 from app.models.reclamo import Reclamo
+from sqlalchemy import func as sa_func
 from app.schemas.expediente import (
     ExpedienteCreate,
     ExpedienteUpdate,
     ExpedienteOut,
     ExpedienteDetalleOut,
+    PaginatedExpedientes,
     PaseCreate,
     PaseOut,
     NotaCreate,
@@ -34,13 +36,15 @@ from app.schemas.expediente import (
 router = APIRouter(prefix="/expedientes", tags=["expedientes"])
 
 
-@router.get("", response_model=list[ExpedienteOut])
+@router.get("", response_model=PaginatedExpedientes)
 def listar_expedientes(
     sector_id: Optional[int] = None,
     estado: Optional[str] = None,
     q: Optional[str] = None,
     fecha_desde: Optional[date] = None,
     fecha_hasta: Optional[date] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     """
@@ -70,10 +74,66 @@ def listar_expedientes(
         if fecha_hasta is not None:
             query = query.where(Expediente.fecha_inicio <= datetime.combine(fecha_hasta, datetime.max.time()))
 
+        # Total de registros (sin LIMIT)
+        total = db.scalar(select(sa_func.count()).select_from(query.subquery())) or 0
+
         query = query.order_by(Expediente.fecha_ultima_actualizacion.desc())
-        return db.scalars(query).all()
+        query = query.offset((page - 1) * page_size).limit(page_size)
+        expedientes = db.scalars(query).all()
+
+        # Obtener el último vencimiento de pases para cada expediente
+        ids = [e.id for e in expedientes]
+        ultimo_pase_venc = {}
+        if ids:
+            subq = (
+                select(
+                    Pase.expediente_id,
+                    sa_func.max(Pase.fecha_vencimiento).label("max_venc")
+                )
+                .where(Pase.expediente_id.in_(ids))
+                .where(Pase.fecha_vencimiento.isnot(None))
+                .group_by(Pase.expediente_id)
+            )
+            for row in db.execute(subq).all():
+                ultimo_pase_venc[row[0]] = row[1]
+
+        # Enriquecer cada expediente con ultimo_vencimiento
+        resultados = []
+        for exp in expedientes:
+            exp_dict = {
+                "id": exp.id,
+                "numero_expediente": exp.numero_expediente,
+                "tipo_id": exp.tipo_id,
+                "asunto": exp.asunto,
+                "descripcion": exp.descripcion,
+                "iniciador_nombre": exp.iniciador_nombre,
+                "iniciador_dni_cuit": exp.iniciador_dni_cuit,
+                "iniciador_cc": exp.iniciador_cc,
+                "iniciador_pp": exp.iniciador_pp,
+                "iniciador_email": exp.iniciador_email,
+                "iniciador_telefono": exp.iniciador_telefono,
+                "regante_id": exp.regante_id,
+                "inspeccion_id": exp.inspeccion_id,
+                "sector_actual_id": exp.sector_actual_id,
+                "estado": exp.estado,
+                "gde_numero": exp.gde_numero,
+                "infogov_numero": exp.infogov_numero,
+                "expediente_acumulado_numero": exp.expediente_acumulado_numero,
+                "fecha_inicio": exp.fecha_inicio,
+                "fecha_ultima_actualizacion": exp.fecha_ultima_actualizacion,
+                "fecha_resolucion": exp.fecha_resolucion,
+                "fecha_archivo": exp.fecha_archivo,
+                "fecha_vencimiento": exp.fecha_vencimiento,
+                "ultimo_vencimiento": max(
+                    filter(None, [exp.fecha_vencimiento, ultimo_pase_venc.get(exp.id)]),
+                    default=None
+                ),
+            }
+            resultados.append(exp_dict)
+
+        return {"items": resultados, "total": total, "page": page, "page_size": page_size}
     except (OperationalError, ProgrammingError):
-        return []
+        return {"items": [], "total": 0, "page": page, "page_size": page_size}
 
 
 @router.post("", response_model=ExpedienteOut, status_code=201)

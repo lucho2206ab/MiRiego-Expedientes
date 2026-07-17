@@ -9,11 +9,13 @@ import type {
 	TipoReclamo,
 	Canal,
 	Toma,
-	Inspeccion
+	Inspeccion,
+	PaginatedResponse
 } from '$lib/types/reclamo';
 
 export function listarReclamos(filtros?: {
 	estado?: string;
+	inspeccion_id?: number;
 	canal_id?: number;
 	toma_id?: number;
 	tipo_id?: number;
@@ -21,9 +23,12 @@ export function listarReclamos(filtros?: {
 	q?: string;
 	fecha_desde?: string;
 	fecha_hasta?: string;
+	page?: number;
+	page_size?: number;
 }) {
 	const params = new URLSearchParams();
 	if (filtros?.estado) params.set('estado', filtros.estado);
+	if (filtros?.inspeccion_id) params.set('inspeccion_id', String(filtros.inspeccion_id));
 	if (filtros?.canal_id) params.set('canal_id', String(filtros.canal_id));
 	if (filtros?.toma_id) params.set('toma_id', String(filtros.toma_id));
 	if (filtros?.tipo_id) params.set('tipo_id', String(filtros.tipo_id));
@@ -31,9 +36,11 @@ export function listarReclamos(filtros?: {
 	if (filtros?.q) params.set('q', filtros.q);
 	if (filtros?.fecha_desde) params.set('fecha_desde', filtros.fecha_desde);
 	if (filtros?.fecha_hasta) params.set('fecha_hasta', filtros.fecha_hasta);
+	if (filtros?.page) params.set('page', String(filtros.page));
+	if (filtros?.page_size) params.set('page_size', String(filtros.page_size));
 
 	const query = params.toString() ? `?${params.toString()}` : '';
-	return apiFetch<Reclamo[]>(`/reclamos${query}`);
+	return apiFetch<PaginatedResponse<Reclamo>>(`/reclamos${query}`);
 }
 
 export function obtenerReclamo(id: number) {

@@ -1,8 +1,11 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
+	import Paginacion from '$lib/components/Paginacion.svelte';
 
 	export let data: PageData;
+
+	const totalPages = Math.ceil(data.total / data.pageSize);
 
 	function nombreSector(sectorId: number): string {
 		return data.sectores.find((s) => s.id === sectorId)?.nombre ?? `Sector ${sectorId}`;
@@ -12,13 +15,84 @@
 	let fechaDesde = data.filtros?.fecha_desde || '';
 	let fechaHasta = data.filtros?.fecha_hasta || '';
 
+	type SortKey = 'numero_expediente' | 'asunto' | 'iniciador_nombre' | 'sector_actual_id' | 'fecha_vencimiento' | 'estado' | 'fecha_ultima_actualizacion';
+
+	let sortColumn: SortKey = 'fecha_ultima_actualizacion';
+	let sortAsc = false;
+
+	function toggleSort(col: SortKey) {
+		if (sortColumn === col) {
+			sortAsc = !sortAsc;
+		} else {
+			sortColumn = col;
+			sortAsc = col === 'numero_expediente';
+		}
+	}
+
+	function arrow(col: SortKey): string {
+		if (sortColumn !== col) return '';
+		return sortAsc ? ' ▲' : ' ▼';
+	}
+
+	$: expedientesOrdenados = [...data.expedientes].sort((a, b) => {
+		let va: string | number | null;
+		let vb: string | number | null;
+		switch (sortColumn) {
+			case 'numero_expediente':
+				va = a.numero_expediente;
+				vb = b.numero_expediente;
+				break;
+			case 'asunto':
+				va = a.asunto;
+				vb = b.asunto;
+				break;
+			case 'iniciador_nombre':
+				va = a.iniciador_nombre;
+				vb = b.iniciador_nombre;
+				break;
+			case 'sector_actual_id':
+				va = nombreSector(a.sector_actual_id);
+				vb = nombreSector(b.sector_actual_id);
+				break;
+			case 'fecha_vencimiento':
+				va = a.ultimo_vencimiento ?? '';
+				vb = b.ultimo_vencimiento ?? '';
+				break;
+			case 'estado':
+				va = a.estado;
+				vb = b.estado;
+				break;
+			case 'fecha_ultima_actualizacion':
+				va = a.fecha_ultima_actualizacion;
+				vb = b.fecha_ultima_actualizacion;
+				break;
+			default:
+				return 0;
+		}
+		if (va == null && vb == null) return 0;
+		if (va == null) return 1;
+		if (vb == null) return -1;
+		const cmp = String(va).localeCompare(String(vb), 'es', { numeric: true });
+		return sortAsc ? cmp : -cmp;
+	});
+
 	function buscar() {
 		const params = new URLSearchParams();
 		if (busqueda) params.set('q', busqueda);
 		if (fechaDesde) params.set('fecha_desde', fechaDesde);
 		if (fechaHasta) params.set('fecha_hasta', fechaHasta);
+		// Resetear a página 1 al buscar
 		const query = params.toString() ? `?${params.toString()}` : '';
 		goto(`/expedientes${query}`, { replaceState: true });
+	}
+
+	function navigatePage(e: CustomEvent<number>) {
+		const params = new URLSearchParams();
+		if (busqueda) params.set('q', busqueda);
+		if (fechaDesde) params.set('fecha_desde', fechaDesde);
+		if (fechaHasta) params.set('fecha_hasta', fechaHasta);
+		params.set('page', String(e.detail));
+		goto(`/expedientes?${params.toString()}`, { replaceState: true });
 	}
 </script>
 
@@ -53,17 +127,17 @@
 		<table class="w-full border-collapse text-sm">
 			<thead>
 				<tr class="border-b border-border text-left">
-					<th class="py-2.5 px-2 font-semibold">Número</th>
-					<th class="py-2.5 px-2 font-semibold">Asunto</th>
-					<th class="py-2.5 px-2 font-semibold">Iniciador</th>
-					<th class="py-2.5 px-2 font-semibold">Sector actual</th>
-					<th class="py-2.5 px-2 font-semibold">Vencimiento</th>
-					<th class="py-2.5 px-2 font-semibold">Estado</th>
-					<th class="py-2.5 px-2 font-semibold">Última actualización</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('numero_expediente')}>Número{arrow('numero_expediente')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('asunto')}>Asunto{arrow('asunto')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('iniciador_nombre')}>Iniciador{arrow('iniciador_nombre')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('sector_actual_id')}>Sector actual{arrow('sector_actual_id')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('fecha_vencimiento')}>Vencimiento{arrow('fecha_vencimiento')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('estado')}>Estado{arrow('estado')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('fecha_ultima_actualizacion')}>Última actualización{arrow('fecha_ultima_actualizacion')}</th>
 				</tr>
 			</thead>
 			<tbody>
-				{#each data.expedientes as exp}
+				{#each expedientesOrdenados as exp}
 					<tr class="border-b border-border hover:bg-bg">
 						<td class="py-2.5 px-2"><a href={`/expedientes/${exp.id}`} class="text-primary hover:underline">{exp.numero_expediente}</a></td>
 						<td class="py-2.5 px-2">{exp.asunto}</td>
@@ -78,8 +152,8 @@
 						</td>
 						<td class="py-2.5 px-2">{nombreSector(exp.sector_actual_id)}</td>
 						<td class="py-2.5 px-2">
-							{#if exp.fecha_vencimiento}
-								{new Date(exp.fecha_vencimiento).toLocaleDateString('es-AR')}
+							{#if exp.ultimo_vencimiento}
+								{new Date(exp.ultimo_vencimiento).toLocaleDateString('es-AR')}
 							{:else}
 								—
 							{/if}
@@ -93,4 +167,8 @@
 			</tbody>
 		</table>
 	</div>
+
+	<Paginacion page={data.page} {totalPages} on:navigate={navigatePage} />
+
+	<p class="text-sm text-text-muted mt-1">Mostrando {data.expedientes.length} de {data.total} expedientes</p>
 {/if}

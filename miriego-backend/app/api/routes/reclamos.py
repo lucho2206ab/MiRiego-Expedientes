@@ -13,7 +13,7 @@ Rutas expuestas:
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -34,6 +34,7 @@ from app.schemas.reclamo import (
     ReclamoCreate,
     ReclamoOut,
     ReclamoDetalleOut,
+    PaginatedReclamos,
     ReclamoUpdate,
     ReclamoComentarioCreate,
     ReclamoComentarioOut,
@@ -111,10 +112,11 @@ def _registrar_historial(
 # Listar reclamos
 # ---------------------------------------------------------------------------
 
-@router.get("", response_model=list[ReclamoOut])
+@router.get("", response_model=PaginatedReclamos)
 def listar_reclamos(
     db: Session = Depends(get_db),
     estado: Optional[str] = None,
+    inspeccion_id: Optional[int] = None,
     canal_id: Optional[int] = None,
     toma_id: Optional[int] = None,
     tipo_id: Optional[int] = None,
@@ -122,6 +124,8 @@ def listar_reclamos(
     q: Optional[str] = None,
     fecha_desde: Optional[str] = None,
     fecha_hasta: Optional[str] = None,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
 ):
     from sqlalchemy import or_, func
 
@@ -129,6 +133,8 @@ def listar_reclamos(
         query = select(Reclamo)
         if estado is not None:
             query = query.where(Reclamo.estado == estado)
+        if inspeccion_id is not None:
+            query = query.where(Reclamo.inspeccion_id == inspeccion_id)
         if canal_id is not None:
             query = query.where(Reclamo.canal_id == canal_id)
         if toma_id is not None:
@@ -161,12 +167,16 @@ def listar_reclamos(
             hasta = datetime.strptime(fecha_hasta, "%Y-%m-%d") + timedelta(days=1)
             query = query.where(Reclamo.fecha_creacion < hasta)
 
+        # Total de registros (sin LIMIT)
+        total = db.scalar(select(func.count()).select_from(query.subquery())) or 0
+
         query = query.order_by(Reclamo.fecha_creacion.desc())
+        query = query.offset((page - 1) * page_size).limit(page_size)
         reclamos = db.scalars(query).all()
         _resolver_numeros_expediente(db, reclamos)
-        return reclamos
+        return {"items": reclamos, "total": total, "page": page, "page_size": page_size}
     except (OperationalError, ProgrammingError):
-        return []
+        return {"items": [], "total": 0, "page": page, "page_size": page_size}
 
 
 # ---------------------------------------------------------------------------

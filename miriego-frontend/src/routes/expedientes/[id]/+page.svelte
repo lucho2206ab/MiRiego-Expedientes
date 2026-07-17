@@ -40,6 +40,8 @@
 	let editIniciadorDni = '';
 	let editIniciadorCc = '';
 	let editIniciadorPp = '';
+	let editIniciadorEmail = '';
+	let editIniciadorTelefono = '';
 	let editGdeNumero = '';
 	let editInfogovNumero = '';
 	let editFechaVencimiento = '';
@@ -54,6 +56,8 @@
 		editIniciadorDni = expediente.iniciador_dni_cuit ?? '';
 		editIniciadorCc = expediente.iniciador_cc ?? '';
 		editIniciadorPp = expediente.iniciador_pp ?? '';
+		editIniciadorEmail = expediente.iniciador_email ?? '';
+		editIniciadorTelefono = expediente.iniciador_telefono ?? '';
 		editGdeNumero = expediente.gde_numero ?? '';
 		editInfogovNumero = expediente.infogov_numero ?? '';
 		editFechaVencimiento = expediente.fecha_vencimiento ? expediente.fecha_vencimiento.substring(0, 10) : '';
@@ -78,6 +82,8 @@
 				iniciador_dni_cuit: editIniciadorDni || undefined,
 				iniciador_cc: editIniciadorCc ? editIniciadorCc.toUpperCase() : undefined,
 				iniciador_pp: editIniciadorPp ? editIniciadorPp.toUpperCase() : undefined,
+				iniciador_email: editIniciadorEmail || undefined,
+				iniciador_telefono: editIniciadorTelefono || undefined,
 				gde_numero: editGdeNumero || undefined,
 				infogov_numero: editInfogovNumero || undefined,
 				fecha_vencimiento: editFechaVencimiento ? editFechaVencimiento + 'T00:00:00-03:00' : undefined
@@ -210,6 +216,14 @@
 				<input id="edit-pp" bind:value={editIniciadorPp} class="w-full px-3 py-2 border border-border rounded-md text-sm" />
 			</div>
 			<div>
+				<label for="edit-email" class="block text-sm font-medium mb-1">Email</label>
+				<input id="edit-email" type="email" bind:value={editIniciadorEmail} class="w-full px-3 py-2 border border-border rounded-md text-sm" />
+			</div>
+			<div>
+				<label for="edit-telefono" class="block text-sm font-medium mb-1">Teléfono</label>
+				<input id="edit-telefono" bind:value={editIniciadorTelefono} class="w-full px-3 py-2 border border-border rounded-md text-sm" />
+			</div>
+			<div>
 				<label for="edit-vencimiento" class="block text-sm font-medium mb-1">Fecha vencimiento</label>
 				<input id="edit-vencimiento" type="date" bind:value={editFechaVencimiento} class="w-full px-3 py-2 border border-border rounded-md text-sm" />
 			</div>
@@ -255,6 +269,12 @@
 			{#if expediente.iniciador_dni_cuit}DNI/CUIT: {expediente.iniciador_dni_cuit}{/if}
 			{#if expediente.iniciador_cc}{#if expediente.iniciador_dni_cuit} | {/if}CC: {expediente.iniciador_cc}{/if}
 			{#if expediente.iniciador_pp}{#if expediente.iniciador_dni_cuit || expediente.iniciador_cc} | {/if}PP: {expediente.iniciador_pp}{/if}
+		</p>
+	{/if}
+	{#if expediente.iniciador_email || expediente.iniciador_telefono}
+		<p class="mb-2">
+			{#if expediente.iniciador_email}Email: {expediente.iniciador_email}{/if}
+			{#if expediente.iniciador_telefono}{#if expediente.iniciador_email} | {/if}Teléfono: {expediente.iniciador_telefono}{/if}
 		</p>
 	{/if}
 	{#if expediente.fecha_vencimiento}

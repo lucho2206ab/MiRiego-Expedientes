@@ -10,11 +10,21 @@ export const load: PageLoad = async ({ url }) => {
 	const fecha_hasta = url.searchParams.get('fecha_hasta') || undefined;
 	const sector_id = url.searchParams.get('sector_id') ? Number(url.searchParams.get('sector_id')) : undefined;
 	const estado = url.searchParams.get('estado') || undefined;
+	const page = Number(url.searchParams.get('page')) || 1;
 
-	const [expedientes, sectores] = await Promise.all([
-		listarExpedientes({ q, fecha_desde, fecha_hasta, sector_id, estado }),
+	const PAGE_SIZE = 20;
+
+	const [paginado, sectores] = await Promise.all([
+		listarExpedientes({ q, fecha_desde, fecha_hasta, sector_id, estado, page, page_size: PAGE_SIZE }),
 		listarSectores()
 	]);
 
-	return { expedientes, sectores, filtros: { q, fecha_desde, fecha_hasta, sector_id, estado } };
+	return {
+		expedientes: paginado.items,
+		total: paginado.total,
+		page: paginado.page,
+		pageSize: paginado.page_size,
+		sectores,
+		filtros: { q, fecha_desde, fecha_hasta, sector_id, estado }
+	};
 };

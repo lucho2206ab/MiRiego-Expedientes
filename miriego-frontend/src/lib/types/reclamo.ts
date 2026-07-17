@@ -167,3 +167,10 @@ export interface ReclamoCreatePayload {
 	reclamante_cc?: string;
 	reclamante_pp?: string;
 }
+
+export interface PaginatedResponse<T> {
+	items: T[];
+	total: number;
+	page: number;
+	page_size: number;
+}

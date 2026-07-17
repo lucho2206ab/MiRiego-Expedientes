@@ -255,7 +255,7 @@
 	<span class="mx-2 text-text-muted">|</span>
 	Prioridad: <span style="color: {colorPrioridad(reclamo.prioridad)}" class="font-semibold">{reclamo.prioridad}</span>
 	<span class="mx-2 text-text-muted">|</span>
-	Estado: <span class="inline-block px-2 py-0.5 rounded-full text-xs bg-[#eef2ee] text-primary">{reclamo.estado}</span>
+	Estado: <span class="inline-block px-2 py-0.5 rounded-full text-xs {['cerrado','rechazado','cancelado','derivado_expediente'].includes(reclamo.estado) ? 'bg-red-100 text-red-700' : 'bg-[#eef2ee] text-primary'}">{reclamo.estado}</span>
 </p>
 
 {#if esBloqueado}
@@ -405,7 +405,7 @@
 			<li class="border-b border-border pb-2">
 				<strong>{formatoFecha(h.fecha)}</strong> — {h.accion}
 				{#if h.estado_anterior && h.estado_nuevo}
-					: <span class="inline-block px-2 py-0.5 rounded-full text-xs bg-[#eef2ee] text-primary">{h.estado_anterior}</span> &rarr; <span class="inline-block px-2 py-0.5 rounded-full text-xs bg-[#eef2ee] text-primary">{h.estado_nuevo}</span>
+					: <span class="inline-block px-2 py-0.5 rounded-full text-xs {['cerrado','rechazado','cancelado','derivado_expediente'].includes(h.estado_anterior) ? 'bg-red-100 text-red-700' : 'bg-[#eef2ee] text-primary'}">{h.estado_anterior}</span> &rarr; <span class="inline-block px-2 py-0.5 rounded-full text-xs {['cerrado','rechazado','cancelado','derivado_expediente'].includes(h.estado_nuevo) ? 'bg-red-100 text-red-700' : 'bg-[#eef2ee] text-primary'}">{h.estado_nuevo}</span>
 				{/if}
 				{#if h.observacion}
 					<br /><em class="text-text-muted">{h.observacion}</em>

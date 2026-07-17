@@ -49,6 +49,8 @@ class ExpedienteCreate(BaseModel):
     iniciador_dni_cuit: Optional[str] = None
     iniciador_cc: Optional[str] = None
     iniciador_pp: Optional[str] = None
+    iniciador_email: Optional[str] = None
+    iniciador_telefono: Optional[str] = None
     regante_id: Optional[int] = None
     inspeccion_id: Optional[int] = None
     sector_actual_id: Optional[int] = None
@@ -70,6 +72,8 @@ class ExpedienteUpdate(BaseModel):
     iniciador_dni_cuit: Optional[str] = None
     iniciador_cc: Optional[str] = None
     iniciador_pp: Optional[str] = None
+    iniciador_email: Optional[str] = None
+    iniciador_telefono: Optional[str] = None
     gde_numero: Optional[str] = None
     infogov_numero: Optional[str] = None
     expediente_acumulado_numero: Optional[str] = None
@@ -88,6 +92,8 @@ class ExpedienteOut(BaseModel):
     iniciador_dni_cuit: Optional[str] = None
     iniciador_cc: Optional[str] = None
     iniciador_pp: Optional[str] = None
+    iniciador_email: Optional[str] = None
+    iniciador_telefono: Optional[str] = None
     regante_id: Optional[int] = None
     inspeccion_id: Optional[int] = None
     sector_actual_id: int
@@ -100,6 +106,7 @@ class ExpedienteOut(BaseModel):
     fecha_resolucion: Optional[datetime] = None
     fecha_archivo: Optional[datetime] = None
     fecha_vencimiento: Optional[datetime] = None
+    ultimo_vencimiento: Optional[datetime] = None
 
 
 # ---------------------------------------------------------------------------
@@ -171,3 +178,14 @@ class ExpedienteDetalleOut(ExpedienteOut):
     """Expediente + su historial de pases y notas, para la pantalla de detalle."""
     pases: list[PaseOut] = []
     notas: list[NotaOut] = []
+
+
+# ---------------------------------------------------------------------------
+# Respuesta paginada
+# ---------------------------------------------------------------------------
+
+class PaginatedExpedientes(BaseModel):
+    items: list[ExpedienteOut]
+    total: int
+    page: int
+    page_size: int

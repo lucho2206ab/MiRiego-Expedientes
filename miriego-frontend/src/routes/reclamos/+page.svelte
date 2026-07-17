@@ -1,37 +1,68 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
+	import Paginacion from '$lib/components/Paginacion.svelte';
 
 	export let data: PageData;
 
+	const totalPages = Math.ceil(data.total / data.pageSize);
+
 	let filtroEstado = '';
-	let filtroCanal = '';
+	let filtroInspeccion: number | '' = '';
+	let filtroCanal: number | '' = '';
 	let filtroTipo = '';
 	let filtroPrioridad = '';
 	let busqueda = '';
 	let fechaDesde = '';
 	let fechaHasta = '';
 
-	// Inicializar desde URL params
-	import { onMount } from 'svelte';
 	onMount(() => {
 		const params = new URLSearchParams(window.location.search);
 		busqueda = params.get('q') ?? '';
 		fechaDesde = params.get('fecha_desde') ?? '';
 		fechaHasta = params.get('fecha_hasta') ?? '';
+		const insParam = params.get('inspeccion_id');
+		if (insParam) filtroInspeccion = Number(insParam);
+		const canalParam = params.get('canal_id');
+		if (canalParam) filtroCanal = Number(canalParam);
 	});
+
+	$: canalesFiltrados = filtroInspeccion
+		? data.canales.filter((c) => c.inspeccion_id === filtroInspeccion)
+		: data.canales;
+
+	function onInspeccionChange() {
+		filtroCanal = '';
+	}
 
 	function aplicarFiltros() {
 		const params = new URLSearchParams();
 		if (filtroEstado) params.set('estado', filtroEstado);
-		if (filtroCanal) params.set('canal_id', filtroCanal);
+		if (filtroInspeccion !== '') params.set('inspeccion_id', String(filtroInspeccion));
+		if (filtroCanal !== '') params.set('canal_id', String(filtroCanal));
 		if (filtroTipo) params.set('tipo_id', filtroTipo);
 		if (filtroPrioridad) params.set('prioridad', filtroPrioridad);
 		if (busqueda.trim()) params.set('q', busqueda.trim());
 		if (fechaDesde) params.set('fecha_desde', fechaDesde);
 		if (fechaHasta) params.set('fecha_hasta', fechaHasta);
+		// Resetear a página 1 al filtrar
 		const qs = params.toString();
 		goto(`/reclamos${qs ? `?${qs}` : ''}`, { replaceState: true, keepFocus: true });
+	}
+
+	function navigatePage(e: CustomEvent<number>) {
+		const params = new URLSearchParams();
+		if (filtroEstado) params.set('estado', filtroEstado);
+		if (filtroInspeccion !== '') params.set('inspeccion_id', String(filtroInspeccion));
+		if (filtroCanal !== '') params.set('canal_id', String(filtroCanal));
+		if (filtroTipo) params.set('tipo_id', filtroTipo);
+		if (filtroPrioridad) params.set('prioridad', filtroPrioridad);
+		if (busqueda.trim()) params.set('q', busqueda.trim());
+		if (fechaDesde) params.set('fecha_desde', fechaDesde);
+		if (fechaHasta) params.set('fecha_hasta', fechaHasta);
+		params.set('page', String(e.detail));
+		goto(`/reclamos?${params.toString()}`, { replaceState: true, keepFocus: true });
 	}
 
 	function nombreInspeccion(inspeccionId: number | null | undefined): string {
@@ -42,12 +73,6 @@
 	function nombreCanal(canalId: number | null | undefined): string {
 		if (!canalId) return '—';
 		return data.canales.find((c) => c.id === canalId)?.nombre ?? `Canal ${canalId}`;
-	}
-
-	function nombreToma(tomaId: number | null | undefined): string {
-		if (!tomaId) return '—';
-		const t = data.tomas.find((t) => t.id === tomaId);
-		return t?.codigo_toma ?? `Toma ${tomaId}`;
 	}
 
 	function nombreTipo(tipoId: number): string {
@@ -63,6 +88,76 @@
 			default: return 'inherit';
 		}
 	}
+
+	// --- Ordenamiento ---
+	type SortKey = 'codigo_reclamo' | 'titulo' | 'reclamante' | 'inspeccion' | 'tipo' | 'prioridad' | 'estado' | 'expediente' | 'fecha_creacion';
+	let sortColumn: SortKey = 'fecha_creacion';
+	let sortAsc = false;
+
+	function toggleSort(col: SortKey) {
+		if (sortColumn === col) {
+			sortAsc = !sortAsc;
+		} else {
+			sortColumn = col;
+			sortAsc = col === 'codigo_reclamo';
+		}
+	}
+
+	function arrow(col: SortKey): string {
+		if (sortColumn !== col) return '';
+		return sortAsc ? ' ▲' : ' ▼';
+	}
+
+	$: reclamosOrdenados = [...data.reclamos].sort((a, b) => {
+		let va: string | number | null;
+		let vb: string | number | null;
+		switch (sortColumn) {
+			case 'codigo_reclamo':
+				va = a.codigo_reclamo;
+				vb = b.codigo_reclamo;
+				break;
+			case 'titulo':
+				va = a.titulo;
+				vb = b.titulo;
+				break;
+			case 'reclamante':
+				va = ((a.reclamante_nombre ?? '') + ' ' + (a.reclamante_apellido ?? '')).trim();
+				vb = ((b.reclamante_nombre ?? '') + ' ' + (b.reclamante_apellido ?? '')).trim();
+				break;
+			case 'inspeccion':
+				va = nombreInspeccion(a.inspeccion_id);
+				vb = nombreInspeccion(b.inspeccion_id);
+				break;
+			case 'tipo':
+				va = nombreTipo(a.tipo_id);
+				vb = nombreTipo(b.tipo_id);
+				break;
+			case 'prioridad':
+				const ordenPrioridad = { critica: 0, alta: 1, media: 2, baja: 3 };
+				va = String(ordenPrioridad[a.prioridad as keyof typeof ordenPrioridad] ?? 4);
+				vb = String(ordenPrioridad[b.prioridad as keyof typeof ordenPrioridad] ?? 4);
+				break;
+			case 'estado':
+				va = a.estado;
+				vb = b.estado;
+				break;
+			case 'expediente':
+				va = a.numero_expediente ?? (a.expediente_id ? String(a.expediente_id) : '');
+				vb = b.numero_expediente ?? (b.expediente_id ? String(b.expediente_id) : '');
+				break;
+			case 'fecha_creacion':
+				va = a.fecha_creacion;
+				vb = b.fecha_creacion;
+				break;
+			default:
+				return 0;
+		}
+		if (va == null && vb == null) return 0;
+		if (va == null) return 1;
+		if (vb == null) return -1;
+		const cmp = String(va).localeCompare(String(vb), 'es', { numeric: true });
+		return sortAsc ? cmp : -cmp;
+	});
 </script>
 
 <div class="flex justify-between items-center mb-4">
@@ -104,10 +199,19 @@
 		</select>
 	</div>
 	<div>
+		<label for="f-inspeccion" class="block text-sm font-medium mb-1">Inspección</label>
+		<select id="f-inspeccion" bind:value={filtroInspeccion} on:change={onInspeccionChange} class="px-3 py-2 border border-border rounded-md text-sm">
+			<option value="">Todas</option>
+			{#each data.inspecciones as ins}
+				<option value={ins.id}>{ins.nombre}</option>
+			{/each}
+		</select>
+	</div>
+	<div>
 		<label for="f-canal" class="block text-sm font-medium mb-1">Canal</label>
-		<select id="f-canal" bind:value={filtroCanal} class="px-3 py-2 border border-border rounded-md text-sm">
+		<select id="f-canal" bind:value={filtroCanal} disabled={filtroInspeccion === '' && canalesFiltrados.length === 0} class="px-3 py-2 border border-border rounded-md text-sm">
 			<option value="">Todos</option>
-			{#each data.canales as canal}
+			{#each canalesFiltrados as canal}
 				<option value={canal.id}>{canal.nombre}</option>
 			{/each}
 		</select>
@@ -143,19 +247,19 @@
 		<table class="w-full border-collapse text-sm">
 			<thead>
 				<tr class="border-b border-border text-left">
-					<th class="py-2.5 px-2 font-semibold">Código</th>
-					<th class="py-2.5 px-2 font-semibold">Título</th>
-					<th class="py-2.5 px-2 font-semibold">Reclamante</th>
-					<th class="py-2.5 px-2 font-semibold">Inspección</th>
-					<th class="py-2.5 px-2 font-semibold">Tipo</th>
-					<th class="py-2.5 px-2 font-semibold">Prioridad</th>
-					<th class="py-2.5 px-2 font-semibold">Estado</th>
-					<th class="py-2.5 px-2 font-semibold">Expediente</th>
-					<th class="py-2.5 px-2 font-semibold">Fecha</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('codigo_reclamo')}>Código{arrow('codigo_reclamo')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('titulo')}>Título{arrow('titulo')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('reclamante')}>Reclamante{arrow('reclamante')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('inspeccion')}>Inspección{arrow('inspeccion')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('tipo')}>Tipo{arrow('tipo')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('prioridad')}>Prioridad{arrow('prioridad')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('estado')}>Estado{arrow('estado')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('expediente')}>Expediente{arrow('expediente')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('fecha_creacion')}>Fecha{arrow('fecha_creacion')}</th>
 				</tr>
 			</thead>
 			<tbody>
-				{#each data.reclamos as r}
+				{#each reclamosOrdenados as r}
 					<tr class="border-b border-border hover:bg-bg">
 						<td class="py-2.5 px-2"><a href={`/reclamos/${r.id}`} class="text-primary hover:underline">{r.codigo_reclamo}</a></td>
 						<td class="py-2.5 px-2">{r.titulo}</td>
@@ -164,7 +268,7 @@
 						<td class="py-2.5 px-2">{nombreTipo(r.tipo_id)}</td>
 						<td class="py-2.5 px-2"><span style="color: {colorPrioridad(r.prioridad)}" class="font-semibold">{r.prioridad}</span></td>
 						<td class="py-2.5 px-2">
-							<span class="inline-block px-2 py-0.5 rounded-full text-xs bg-[#eef2ee] text-primary">{r.estado}</span>
+							<span class="inline-block px-2 py-0.5 rounded-full text-xs {['cerrado','rechazado','cancelado','derivado_expediente'].includes(r.estado) ? 'bg-red-100 text-red-700' : 'bg-[#eef2ee] text-primary'}">{r.estado}</span>
 						</td>
 						<td class="py-2.5 px-2">
 							{#if r.expediente_id}
@@ -179,4 +283,8 @@
 			</tbody>
 		</table>
 	</div>
+
+	<Paginacion page={data.page} {totalPages} on:navigate={navigatePage} />
+
+	<p class="text-sm text-text-muted mt-1">Mostrando {data.reclamos.length} de {data.total} reclamos</p>
 {/if}
