@@ -89,8 +89,28 @@
 		}
 	}
 
+	const ESTADOS_TERMINALES = ['resuelto', 'cerrado', 'rechazado', 'cancelado', 'derivado_expediente'];
+
+	function vencimientoInfo(r: { fecha_limite_respuesta?: string | null; estado: string; prioridad: string }): { texto: string; color: string; bg: string } {
+		if (!r.fecha_limite_respuesta) return { texto: '—', color: '#888', bg: 'transparent' };
+		if (ESTADOS_TERMINALES.includes(r.estado)) return { texto: 'Congelado', color: '#6b7280', bg: '#f3f4f6' };
+		const ahora = new Date();
+		const limite = new Date(r.fecha_limite_respuesta);
+		const diffMs = limite.getTime() - ahora.getTime();
+		const diffHs = diffMs / (1000 * 60 * 60);
+		if (diffMs <= 0) return { texto: 'Vencido', color: '#fff', bg: 'var(--color-danger)' };
+		if (diffHs < 6) return { texto: `${Math.round(diffHs)}h`, color: '#856404', bg: 'var(--color-warning-bg)' };
+		return { texto: `${Math.round(diffHs)}h`, color: colorPrioridad(r.prioridad), bg: 'transparent' };
+	}
+
+	function vencimientoSortKey(r: { fecha_limite_respuesta?: string | null; estado: string }): number {
+		if (!r.fecha_limite_respuesta) return 1;
+		if (ESTADOS_TERMINALES.includes(r.estado)) return 2;
+		return 0;
+	}
+
 	// --- Ordenamiento ---
-	type SortKey = 'codigo_reclamo' | 'titulo' | 'reclamante' | 'inspeccion' | 'tipo' | 'prioridad' | 'estado' | 'expediente' | 'fecha_creacion';
+	type SortKey = 'codigo_reclamo' | 'titulo' | 'reclamante' | 'inspeccion' | 'tipo' | 'prioridad' | 'estado' | 'expediente' | 'fecha_creacion' | 'vencimiento';
 	let sortColumn: SortKey = 'fecha_creacion';
 	let sortAsc = false;
 
@@ -148,6 +168,10 @@
 			case 'fecha_creacion':
 				va = a.fecha_creacion;
 				vb = b.fecha_creacion;
+				break;
+			case 'vencimiento':
+				va = String(vencimientoSortKey(a)) + (a.fecha_limite_respuesta ?? '');
+				vb = String(vencimientoSortKey(b)) + (b.fecha_limite_respuesta ?? '');
 				break;
 			default:
 				return 0;
@@ -256,6 +280,7 @@
 					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('estado')}>Estado{arrow('estado')}</th>
 					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('expediente')}>Expediente{arrow('expediente')}</th>
 					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('fecha_creacion')}>Fecha{arrow('fecha_creacion')}</th>
+					<th class="py-2.5 px-2 font-semibold cursor-pointer select-none hover:text-primary" on:click={() => toggleSort('vencimiento')}>Vencimiento{arrow('vencimiento')}</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -278,6 +303,7 @@
 							{/if}
 						</td>
 						<td class="py-2.5 px-2">{new Date(r.fecha_creacion).toLocaleDateString('es-AR')}</td>
+						<td class="py-2.5 px-2"><span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium" style="color: {vencimientoInfo(r).color}; background: {vencimientoInfo(r).bg}">{vencimientoInfo(r).texto}</span></td>
 					</tr>
 				{/each}
 			</tbody>

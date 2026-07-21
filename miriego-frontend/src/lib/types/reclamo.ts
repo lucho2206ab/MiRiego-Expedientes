@@ -103,6 +103,7 @@ export interface Reclamo {
 	fecha_primera_respuesta?: string | null;
 	fecha_resolucion?: string | null;
 	fecha_cierre?: string | null;
+	fecha_limite_respuesta?: string | null;
 
 	asignado_a?: number | null;
 	expediente_id?: number | null;

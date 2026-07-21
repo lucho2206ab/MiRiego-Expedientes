@@ -28,6 +28,9 @@ from app.models.reclamo import (
     Canal,
     Toma,
     Inspeccion,
+    PrioridadReclamo,
+    ESTADOS_TERMINALES,
+    calcular_fecha_limite,
 )
 from app.models.expediente import Expediente
 from app.schemas.reclamo import (
@@ -200,9 +203,14 @@ def crear_reclamo(payload: ReclamoCreate, db: Session = Depends(get_db)):
             data["canal_id"] = canal.id
             data["inspeccion_id"] = canal.inspeccion_id
 
+    ahora = datetime.now(timezone.utc)
     reclamo = Reclamo(
         **data,
         codigo_reclamo=_generar_codigo(db),
+        fecha_creacion=ahora,
+    )
+    reclamo.fecha_limite_respuesta = calcular_fecha_limite(
+        reclamo.prioridad, ahora
     )
     db.add(reclamo)
     db.commit()
@@ -280,6 +288,11 @@ def actualizar_reclamo(reclamo_id: int, payload: ReclamoUpdate, db: Session = De
 
     if "prioridad" in cambios:
         reclamo.prioridad = cambios["prioridad"]
+        estado_actual = reclamo.estado.value if reclamo.estado else "nuevo"
+        if estado_actual not in ESTADOS_TERMINALES:
+            reclamo.fecha_limite_respuesta = calcular_fecha_limite(
+                reclamo.prioridad, reclamo.fecha_creacion
+            )
 
     if "asignado_a" in cambios:
         reclamo.asignado_a = cambios["asignado_a"]

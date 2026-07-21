@@ -22,6 +22,7 @@ from app.models.reclamo import (
     CategoriaReclamo,
     TipoReclamo,
 )
+from app.models.notificacion import TipoNotificacion, MedioNotificacion
 from app.schemas.expediente import SectorOut, TipoExpedienteOut
 from app.schemas.reclamo import (
     CuencaOut,
@@ -32,6 +33,7 @@ from app.schemas.reclamo import (
     CategoriaReclamoOut,
     TipoReclamoOut,
 )
+from app.schemas.notificacion import TipoNotificacionOut, MedioNotificacionOut
 
 logger = logging.getLogger(__name__)
 
@@ -130,4 +132,26 @@ def listar_tipos_reclamo(db: Session = Depends(get_db)):
         return db.scalars(select(TipoReclamo).where(TipoReclamo.activo.is_(True))).all()
     except (OperationalError, ProgrammingError) as exc:
         logger.error("Error en /catalogos/tipos-reclamo: %s", exc)
+        return []
+
+
+# ---------------------------------------------------------------------------
+# Notificaciones
+# ---------------------------------------------------------------------------
+
+@router.get("/tipos-notificacion", response_model=list[TipoNotificacionOut])
+def listar_tipos_notificacion(db: Session = Depends(get_db)):
+    try:
+        return db.scalars(select(TipoNotificacion).where(TipoNotificacion.activo.is_(True))).all()
+    except (OperationalError, ProgrammingError) as exc:
+        logger.error("Error en /catalogos/tipos-notificacion: %s", exc)
+        return []
+
+
+@router.get("/medios-notificacion", response_model=list[MedioNotificacionOut])
+def listar_medios_notificacion(db: Session = Depends(get_db)):
+    try:
+        return db.scalars(select(MedioNotificacion).where(MedioNotificacion.activo.is_(True))).all()
+    except (OperationalError, ProgrammingError) as exc:
+        logger.error("Error en /catalogos/medios-notificacion: %s", exc)
         return []

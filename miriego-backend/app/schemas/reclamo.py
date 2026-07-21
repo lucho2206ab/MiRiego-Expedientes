@@ -166,6 +166,7 @@ class ReclamoOut(BaseModel):
     fecha_primera_respuesta: Optional[datetime] = None
     fecha_resolucion: Optional[datetime] = None
     fecha_cierre: Optional[datetime] = None
+    fecha_limite_respuesta: Optional[datetime] = None
 
     asignado_a: Optional[int] = None
     expediente_id: Optional[int] = None

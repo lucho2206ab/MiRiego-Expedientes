@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routes import catalogos, expedientes, reclamos
+from app.api.routes import catalogos, expedientes, reclamos, notificaciones, dashboard
 from app.core.config import settings
 from app.core.database import ensure_database_ready
 
@@ -50,6 +50,8 @@ app.add_middleware(
 app.include_router(expedientes.router)
 app.include_router(catalogos.router)
 app.include_router(reclamos.router)
+app.include_router(notificaciones.router)
+app.include_router(dashboard.router)
 
 
 @app.on_event("startup")

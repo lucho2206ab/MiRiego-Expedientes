@@ -4,7 +4,7 @@ Reflejan las tablas creadas en db/miriego_schema_reclamos.sql.
 """
 
 import enum
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import (
     Column,
@@ -45,6 +45,27 @@ class PrioridadReclamo(str, enum.Enum):
     media = "media"
     alta = "alta"
     critica = "critica"
+
+
+SLA_HORAS: dict[str, int] = {
+    PrioridadReclamo.baja: 72,
+    PrioridadReclamo.media: 48,
+    PrioridadReclamo.alta: 24,
+    PrioridadReclamo.critica: 4,
+}
+
+ESTADOS_TERMINALES = frozenset({
+    "resuelto",
+    "cerrado",
+    "rechazado",
+    "cancelado",
+    "derivado_expediente",
+})
+
+
+def calcular_fecha_limite(prioridad: PrioridadReclamo, fecha_creacion: datetime) -> datetime:
+    horas = SLA_HORAS.get(prioridad, 48)
+    return fecha_creacion + timedelta(hours=horas)
 
 
 # ---------------------------------------------------------------------------
@@ -235,6 +256,7 @@ class Reclamo(Base):
     fecha_primera_respuesta = Column(DateTime(timezone=True))
     fecha_resolucion = Column(DateTime(timezone=True))
     fecha_cierre = Column(DateTime(timezone=True))
+    fecha_limite_respuesta = Column(DateTime(timezone=True))
 
     asignado_a = Column(Integer)
     expediente_id = Column(Integer)  # FK lógica al módulo de expedientes, sin constraint forzada
