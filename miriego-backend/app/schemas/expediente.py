@@ -114,7 +114,8 @@ class ExpedienteOut(BaseModel):
 # ---------------------------------------------------------------------------
 
 class PaseCreate(BaseModel):
-    sector_destino_id: int
+    sector_destino_id: Optional[int] = None
+    sector_nombre: Optional[str] = None
     usuario_id: Optional[int] = None
     motivo: Optional[str] = None
     observaciones: Optional[str] = None

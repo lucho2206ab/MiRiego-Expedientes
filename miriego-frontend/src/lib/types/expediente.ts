@@ -132,7 +132,7 @@ export interface Inspeccion {
 	asociacion_id: number;
 }
 
-export type SubsectorMesaEntradas = 'Casilla de Vencimiento' | 'Notificador' | 'Reserva' | 'Archivo Mesa de Entradas' | 'Archivo Deposito';
+export type SubsectorMesaEntradas = 'Casilla de Vencimiento' | 'Notificador' | 'Reserva' | 'Archivo Mesa de Entradas' | 'Archivo Deposito' | 'Recepcion';
 
 export interface PaginatedResponse<T> {
 	items: T[];

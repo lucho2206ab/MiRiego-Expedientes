@@ -308,7 +308,7 @@
 	{/if}
 
 	{#if error}
-		<p class="text-danger text-sm mt-3">{error}</p>
+		<div class="bg-danger-bg border border-danger-border text-danger px-4 py-3 rounded-md text-sm mt-3" role="alert">{error}</div>
 	{/if}
 
 	<div class="mt-6 flex gap-3">

@@ -9,7 +9,7 @@ Two independent projects in a single repo (no monorepo tooling, no root `package
 | Project | Stack | Dev port | DB |
 |---------|-------|----------|----|
 | `miriego-backend/` | FastAPI + SQLAlchemy (sync) + psycopg3 + PostgreSQL | `:8000` | `miriego` schema |
-| `miriego-frontend/` | SvelteKit 2 + Svelte 4 + TypeScript + Vite + Tailwind CSS v4 | `:5174` | — |
+| `miriego-frontend/` | SvelteKit 2 + Svelte 4 + TypeScript + Vite + Tailwind CSS v4 + jspdf | `:5174` | — |
 
 ## Quick start (development)
 
@@ -54,9 +54,19 @@ psql -U postgres -d miriego -f miriego-backend/db/reclamos_v3_cc_pp.sql
 # 4. Optional migrations (new columns, indexes)
 psql -U postgres -d miriego -f miriego-backend/db/fix_iniciador_contacto.sql
 psql -U postgres -d miriego -f miriego-backend/db/add_indexes.sql
+
+# 5. Notificaciones + additional migrations
+psql -U postgres -d miriego -f miriego-backend/db/notificaciones_schema.sql
+psql -U postgres -d miriego -f miriego-backend/db/add_sla_reclamos.sql
+psql -U postgres -d miriego -f miriego-backend/db/fix_duplicados_catalogos.sql
+
+# 6. Unified schema (consolidated — use for fresh installs instead of steps 1-5)
+psql -U postgres -d miriego -f miriego-backend/db/miriego_schema_unificado.sql
 ```
 
 SQL files contain PL/pgSQL functions — use `psql -f` or pgAdmin Query Tool, never split by `;`.
+
+**Note:** `miriego_schema_unificado.sql` is a consolidated schema for fresh installs. Steps 1-5 are for incremental updates on existing databases.
 
 ## Commands
 
@@ -177,23 +187,23 @@ All 4 must show `Running` / `Automatic`.
 
 ### Backend (`miriego-backend/`)
 - **Entry point:** `app/main.py` — creates FastAPI app, mounts CORS, calls `ensure_database_ready()` on startup
-- **Routes:** `app/api/routes/expedientes.py` (CRUD + pases + notas), `app/api/routes/reclamos.py` (CRUD + comentarios + historial), `app/api/routes/catalogos.py` (read-only catalog endpoints)
-- **Models:** `app/models/expediente.py`, `app/models/reclamo.py` — SQLAlchemy ORM in `miriego` schema
-- **Schemas:** `app/schemas/expediente.py`, `app/schemas/reclamo.py` — Pydantic v2
+- **Routes:** `app/api/routes/expedientes.py` (CRUD + pases + notas), `app/api/routes/reclamos.py` (CRUD + comentarios + historial), `app/api/routes/catalogos.py` (read-only catalog endpoints), `app/api/routes/notificaciones.py` (CRUD), `app/api/routes/dashboard.py` (vencimientos endpoints)
+- **Models:** `app/models/expediente.py`, `app/models/reclamo.py`, `app/models/notificacion.py` — SQLAlchemy ORM in `miriego` schema
+- **Schemas:** `app/schemas/expediente.py`, `app/schemas/reclamo.py`, `app/schemas/notificacion.py` — Pydantic v2
 - **Config:** `app/core/config.py` — pydantic-settings loads from `.env`
 - **DB:** `app/core/database.py` — **sync** SQLAlchemy engine (`postgresql+psycopg://`), not async
 - **CORS:** hardcoded list + regex in `main.py` (covers localhost, 127.0.0.1, 10.x, 192.168.x on ports 5173/5174)
-- **SQL migrations:** `db/` — 2 schema files + 5 migration/fix files (apply in order, see above)
+- **SQL migrations:** `db/` — 2 schema files + 9 migration/fix files (apply in order, see above)
 
 ### Frontend (`miriego-frontend/`)
 - **CSS:** Tailwind CSS v4 via `@tailwindcss/vite` plugin — no `postcss.config.js` or `tailwind.config.js` needed; theme tokens in `src/app.css` via `@theme {}`
 - **Adapter:** `@sveltejs/adapter-node` — builds to `build/index.js` for production SSR
 - **Vite config:** `vite.config.js` (plain JS, not TS)
 - **API client:** `src/lib/api/client.ts` — `apiFetch<T>()` wrapper around fetch. Uses `PUBLIC_API_URL` env var (default `/api` in production, proxied through Caddy)
-- **API modules:** `src/lib/api/expedientes.ts`, `src/lib/api/reclamos.ts`, `src/lib/api/catalogos.ts`
-- **Types:** `src/lib/types/expediente.ts`, `src/lib/types/reclamo.ts` — include `PaginatedResponse<T>` interface
+- **API modules:** `src/lib/api/expedientes.ts`, `src/lib/api/reclamos.ts`, `src/lib/api/catalogos.ts`, `src/lib/api/notificaciones.ts`, `src/lib/api/dashboard.ts`
+- **Types:** `src/lib/types/expediente.ts`, `src/lib/types/reclamo.ts`, `src/lib/types/notificacion.ts`, `src/lib/types/dashboard.ts` — include `PaginatedResponse<T>` interface
 - **Components:** `src/lib/components/Paginacion.svelte` — reusable pagination control (← Anterior / Página X de Y / Siguiente →)
-- **Routes:** `src/routes/expedientes/` (list, `[id]`, `nuevo`), `src/routes/reclamos/` (list, `[id]`, `nuevo`)
+- **Routes:** `src/routes/dashboard/`, `src/routes/expedientes/` (list, `[id]`, `nuevo`), `src/routes/reclamos/` (list, `[id]`, `nuevo`), `src/routes/notificaciones/` (list, `[id]`, `nuevo`)
 - **SvelteKit conventions:** load functions in `+page.ts`, components in `+page.svelte`
 - **Pagination:** Backend returns `{items, total, page, page_size}`. Frontend reads `page` from URL params, passes to API, and renders `Paginacion` component. Filters reset to page 1.
 
@@ -206,7 +216,7 @@ All 4 must show `Running` / `Automatic`.
 - **Backend auto-creates DB on startup:** `ensure_database_ready()` in `database.py` will create the database and `miriego` schema if they don't exist. However, it only runs `Base.metadata.create_all()` — it does NOT apply PL/pgSQL functions, triggers, or seed data. Use the SQL files for that.
 - **`miriego_schema_expedientes.sql` does NOT have `CREATE SCHEMA`** — `miriego_schema_reclamos.sql` must run first or the schema must be created manually.
 - **SQLAlchemy is sync, not async** — uses `psycopg` (psycopg3) driver, not `asyncpg`. Simple but not ideal for high-concurrency.
-- **`usuario_id: 1` is hardcoded** in `src/lib/api/reclamos.ts` (comentarios) — marked as TODO for when auth is added.
+- **`usuario_id: 1` is hardcoded** in `src/lib/api/reclamos.ts` (comentarios) and in `app/api/routes/notificaciones.py` (crear_notificacion) — marked as TODO for when auth is added.
 - **Alembic** is in `requirements.txt` but no `alembic.ini` or migrations directory exists yet — schema changes are still manual SQL files.
 - **SQL enum gotchas:** `estado_expediente` uses `pase_pendiente` (not `pase`); `estado_reclamo` includes `derivado_expediente`; `reclamos.expediente_id` was added after initial schema via `fix_expedientes_schema.sql`.
 - **No auth yet** — both READMEs list it as next step.

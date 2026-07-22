@@ -35,7 +35,8 @@ export interface Notificacion {
 	expediente_id?: number | null;
 
 	notificado_tipo: NotificadoTipo;
-	notificado_ccpp?: string | null;
+	cc?: string | null;
+	pp?: string | null;
 	notificado_nombre?: string | null;
 	notificado_documento?: string | null;
 	notificado_domicilio?: string | null;
@@ -61,7 +62,8 @@ export interface NotificacionCreatePayload {
 	medio_notificacion_id?: number | null;
 	expediente_id?: number | null;
 	notificado_tipo: NotificadoTipo;
-	notificado_ccpp?: string;
+	cc?: string;
+	pp?: string;
 	notificado_nombre?: string;
 	notificado_documento?: string;
 	notificado_domicilio?: string;

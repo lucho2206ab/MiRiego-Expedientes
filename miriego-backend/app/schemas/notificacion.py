@@ -36,7 +36,8 @@ class NotificacionCreate(BaseModel):
     expediente_id: Optional[int] = None
 
     notificado_tipo: NotificadoTipo = NotificadoTipo.tercero
-    notificado_ccpp: Optional[str] = None
+    cc: Optional[str] = None
+    pp: Optional[str] = None
     notificado_nombre: Optional[str] = None
     notificado_documento: Optional[str] = None
     notificado_domicilio: Optional[str] = None
@@ -61,7 +62,8 @@ class NotificacionOut(BaseModel):
     expediente_id: Optional[int] = None
 
     notificado_tipo: NotificadoTipo
-    notificado_ccpp: Optional[str] = None
+    cc: Optional[str] = None
+    pp: Optional[str] = None
     notificado_nombre: Optional[str] = None
     notificado_documento: Optional[str] = None
     notificado_domicilio: Optional[str] = None
@@ -86,6 +88,8 @@ class NotificacionUpdate(BaseModel):
     tipo_notificacion_id: Optional[int] = None
     medio_notificacion_id: Optional[int] = None
     expediente_id: Optional[int] = None
+    cc: Optional[str] = None
+    pp: Optional[str] = None
     notificado_nombre: Optional[str] = None
     notificado_documento: Optional[str] = None
     notificado_domicilio: Optional[str] = None

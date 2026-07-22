@@ -44,7 +44,8 @@ export function actualizarExpediente(id: number, payload: ExpedienteUpdatePayloa
 export function generarPase(
 	expedienteId: number,
 	payload: {
-		sector_destino_id: number;
+		sector_destino_id?: number;
+		sector_nombre?: string;
 		motivo?: string;
 		observaciones?: string;
 		fecha_vencimiento?: string;

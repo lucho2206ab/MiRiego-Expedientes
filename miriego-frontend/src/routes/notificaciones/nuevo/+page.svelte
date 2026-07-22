@@ -8,7 +8,8 @@
 
 	// Notificado
 	let notificadoTipo: NotificadoTipo = 'tercero';
-	let notificadoCcpp = '';
+	let cc = '';
+	let pp = '';
 	let notificadoNombre = '';
 	let notificadoDocumento = '';
 	let notificadoDomicilio = '';
@@ -49,7 +50,8 @@
 		try {
 			const payload: NotificacionCreatePayload = {
 				notificado_tipo: notificadoTipo,
-				notificado_ccpp: notificadoTipo === 'regante' && notificadoCcpp ? notificadoCcpp.toUpperCase() : undefined,
+				cc: cc ? cc.toUpperCase() : undefined,
+				pp: pp ? pp.toUpperCase() : undefined,
 				notificado_nombre: notificadoNombre ? notificadoNombre.toUpperCase() : undefined,
 				notificado_documento: notificadoDocumento || undefined,
 				notificado_domicilio: notificadoDomicilio ? notificadoDomicilio.toUpperCase() : undefined,
@@ -92,8 +94,12 @@
 		{#if notificadoTipo === 'regante'}
 			<div class="grid grid-cols-2 gap-3 mt-4">
 				<div>
-					<label for="n-ccpp" class="block text-sm font-medium mb-1">CCPP</label>
-					<input id="n-ccpp" bind:value={notificadoCcpp} placeholder="Código CCPP" class="w-full px-3 py-2 border border-border rounded-md text-sm" />
+					<label for="n-cc" class="block text-sm font-medium mb-1">CC (Código de Cauce)</label>
+					<input id="n-cc" bind:value={cc} placeholder="Ej: CC-001" class="w-full px-3 py-2 border border-border rounded-md text-sm" />
+				</div>
+				<div>
+					<label for="n-pp" class="block text-sm font-medium mb-1">PP (Padrón Parcial)</label>
+					<input id="n-pp" bind:value={pp} placeholder="Ej: PP-001" class="w-full px-3 py-2 border border-border rounded-md text-sm" />
 				</div>
 			</div>
 		{/if}
@@ -164,7 +170,7 @@
 	</div>
 
 	{#if error}
-		<p class="text-danger text-sm mt-3">{error}</p>
+		<div class="bg-danger-bg border border-danger-border text-danger px-4 py-3 rounded-md text-sm mt-3" role="alert">{error}</div>
 	{/if}
 
 	<div class="mt-6 flex gap-3">

@@ -1,4 +1,5 @@
 import { apiFetch } from './client';
+import { PUBLIC_API_URL } from '$env/static/public';
 import type {
 	Notificacion,
 	NotificacionDetalle,
@@ -73,4 +74,28 @@ export function listarTiposNotificacion() {
 
 export function listarMediosNotificacion() {
 	return apiFetch<MedioNotificacion[]>('/catalogos/medios-notificacion');
+}
+
+// --- Imprimir cédula ---
+
+export async function imprimirNotificacion(id: number): Promise<void> {
+	const res = await fetch(`${PUBLIC_API_URL}/notificaciones/${id}/imprimir`, { method: 'POST' });
+	if (!res.ok) {
+		const detalle = await res.text();
+		let mensaje = detalle;
+		try {
+			const parsed = JSON.parse(detalle);
+			if (parsed.detail) mensaje = parsed.detail;
+		} catch { /* no era JSON */ }
+		throw new Error(mensaje);
+	}
+	const blob = await res.blob();
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement('a');
+	a.href = url;
+	a.download = `cedula_${id}.docx`;
+	document.body.appendChild(a);
+	a.click();
+	a.remove();
+	URL.revokeObjectURL(url);
 }

@@ -17,7 +17,12 @@ export async function apiFetch<T>(
 
 	if (!res.ok) {
 		const detalle = await res.text();
-		throw new Error(`Error ${res.status} en ${path}: ${detalle}`);
+		let mensaje = detalle;
+		try {
+			const parsed = JSON.parse(detalle);
+			if (parsed.detail) mensaje = parsed.detail;
+		} catch { /* no era JSON, usar el texto tal cual */ }
+		throw new Error(mensaje);
 	}
 
 	// Los endpoints que no devuelven cuerpo (204) no intentan parsear JSON

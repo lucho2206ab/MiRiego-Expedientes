@@ -6,22 +6,24 @@ Rutas expuestas:
   POST   /notificaciones              -> crear
   GET    /notificaciones/{id}         -> detalle
   PATCH  /notificaciones/{id}         -> actualizar estado / campos
+  POST   /notificaciones/{id}/imprimir -> generar cédula .docx
 """
 
+import io
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import StreamingResponse
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func, or_, text
 
 from app.core.database import get_db
-from app.models.notificacion import (
-    Notificacion,
-    EstadoNotificacion,
-)
+from app.models.notificacion import Notificacion
 from app.models.expediente import Expediente
+from app.adapters.cc_adapter import StubCCAdapter
 from app.schemas.notificacion import (
     NotificacionCreate,
     NotificacionOut,
@@ -32,8 +34,13 @@ from app.schemas.notificacion import (
 
 router = APIRouter(prefix="/notificaciones", tags=["notificaciones"])
 
-ESTADOS_TERMINALES_NOTIF = frozenset({"cerrada"})
+_TEMPLATES_DIR = Path(__file__).resolve().parent.parent.parent.parent / "templates"
+_TEMPLATE_PATH = _TEMPLATES_DIR / "notificacion_template.docx"
 
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 def _resolver_numeros_expediente(db: Session, notificaciones: list) -> None:
     """Puebla numero_expediente usando una sola query."""
@@ -49,22 +56,16 @@ def _resolver_numeros_expediente(db: Session, notificaciones: list) -> None:
             n.numero_expediente = mapa.get(n.expediente_id)
 
 
-def _generar_codigo(db: Session) -> str:
-    """Genera el próximo código: NOT-YYYY-NNNNNN."""
-    anio = datetime.now().year
-    prefijo = f"NOT-{anio}-"
-    ultimo = db.scalar(
-        select(Notificacion)
-        .where(Notificacion.codigo_notificacion.like(f"{prefijo}%"))
-        .order_by(Notificacion.codigo_notificacion.desc())
-        .limit(1)
-    )
-    if ultimo:
-        ultimo_numero = int(ultimo.codigo_notificacion.split("-")[-1])
-        siguiente = ultimo_numero + 1
-    else:
-        siguiente = 1
-    return f"{prefijo}{siguiente:06d}"
+def _resolver_inspeccion_desde_cc(db: Session, cc: str) -> dict:
+    """
+    Resuelve inspección/inspector a partir del CC usando el adapter.
+    Si no hay match, retorna strings vacíos.
+    """
+    adapter = StubCCAdapter(db)
+    info = adapter.resolver(cc)
+    if info:
+        return {"inspeccion_nombre": info.inspeccion_nombre, "inspector_nombre": info.inspector_nombre}
+    return {"inspeccion_nombre": "", "inspector_nombre": ""}
 
 
 # ---------------------------------------------------------------------------
@@ -123,13 +124,17 @@ def listar_notificaciones(
 @router.post("", response_model=NotificacionOut, status_code=201)
 def crear_notificacion(payload: NotificacionCreate, db: Session = Depends(get_db)):
     ahora = datetime.now(timezone.utc)
+    seq_val = db.execute(text("SELECT nextval('miriego.seq_codigo_notificacion')")).scalar()
+    codigo = f"CE-{seq_val:04d}"
     notificacion = Notificacion(
         **payload.model_dump(),
-        codigo_notificacion=_generar_codigo(db),
+        codigo_notificacion=codigo,
         fecha_emision=ahora,
         usuario_id=1,  # TODO: reemplazar con usuario autenticado
     )
     db.add(notificacion)
+    db.flush()
+    db.refresh(notificacion)
     db.commit()
     db.refresh(notificacion)
     return notificacion
@@ -168,6 +173,7 @@ def actualizar_notificacion(notificacion_id: int, payload: NotificacionUpdate, d
         "notificado_nombre", "notificado_documento", "notificado_domicilio",
         "notificado_contacto", "motivo", "descripcion",
         "fecha_notificacion", "fecha_vencimiento_respuesta", "observaciones",
+        "cc", "pp",
     ]
     for campo in CAMPOS:
         if campo in cambios:
@@ -177,3 +183,47 @@ def actualizar_notificacion(notificacion_id: int, payload: NotificacionUpdate, d
     db.commit()
     db.refresh(notificacion)
     return notificacion
+
+
+# ---------------------------------------------------------------------------
+# Imprimir cédula (genera .docx con docxtpl)
+# ---------------------------------------------------------------------------
+
+@router.post("/{notificacion_id}/imprimir")
+def imprimir_cedula(notificacion_id: int, db: Session = Depends(get_db)):
+    notificacion = db.get(Notificacion, notificacion_id)
+    if not notificacion:
+        raise HTTPException(404, "Notificación no encontrada")
+
+    if not _TEMPLATE_PATH.exists():
+        raise HTTPException(500, "Plantilla de notificación no encontrada en el servidor")
+
+    # Resolver inspección/inspector desde CC
+    ctx_cc = _resolver_inspeccion_desde_cc(db, notificacion.cc)
+
+    context = {
+        "nombre": notificacion.notificado_nombre or "",
+        "cc": notificacion.cc or "",
+        "pp": notificacion.pp or "",
+        "codigo": notificacion.codigo_notificacion or "",
+        "domicilio": notificacion.notificado_domicilio or "",
+        "descripcion": notificacion.descripcion or "",
+        "inspeccion_nombre": ctx_cc["inspeccion_nombre"],
+        "inspector_nombre": ctx_cc["inspector_nombre"],
+    }
+
+    from docxtpl import DocxTemplate
+
+    doc = DocxTemplate(str(_TEMPLATE_PATH))
+    doc.render(context)
+
+    buf = io.BytesIO()
+    doc.save(buf)
+    buf.seek(0)
+
+    filename = f"cedula_{notificacion.codigo_notificacion}.docx"
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )

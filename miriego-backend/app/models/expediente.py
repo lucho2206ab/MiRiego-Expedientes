@@ -118,7 +118,7 @@ class Pase(Base):
     motivo = Column(String(250))
     observaciones = Column(Text)
     inspeccion_id = Column(Integer)  # FK logica a inspecciones (requerido solo si sector destino = Inspeccion de Cauces)
-    subsector_mesa_entradas = Column(String(50))  # Valores fijos: Casilla de Vencimiento, Notificador, Reserva
+    subsector_mesa_entradas = Column(String(50))  # Valores fijos: Casilla de Vencimiento, Notificador, Reserva, Recepcion
     usuario_asignado_id = Column(Integer)  # FK logica a usuarios (para asignar responsable en Mesa de Entradas, uso futuro)
     estado = Column(SAEnum(EstadoPase, name="estado_pase"), default=EstadoPase.enviado)
     fecha_envio = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

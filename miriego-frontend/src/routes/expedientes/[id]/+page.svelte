@@ -20,7 +20,8 @@
 		'Notificador',
 		'Reserva',
 		'Archivo Mesa de Entradas',
-		'Archivo Deposito'
+		'Archivo Deposito',
+		'Recepcion'
 	];
 
 	function nombreSector(sectorId: number): string {
@@ -99,6 +100,8 @@
 
 	// --- Formulario de pase (derivacion) ---
 	let sectorDestinoId: number | undefined;
+	let sectorDestinoOpcion: number | 'otro' | undefined;
+	let sectorNombreManual = '';
 	let motivoPase = '';
 	let fechaVencimientoPase = '';
 	let inspeccionId: number | undefined;
@@ -111,13 +114,24 @@
 	$: requiereSubsectorMesa = sectorDestinoNombre === SECTOR_MESA_ENTRADAS;
 
 	function onSectorDestinoChange() {
+		if (sectorDestinoOpcion === 'otro') {
+			sectorDestinoId = undefined;
+		} else {
+			sectorDestinoId = sectorDestinoOpcion as number | undefined;
+			sectorNombreManual = '';
+		}
 		inspeccionId = undefined;
 		subsectorMesaEntradas = undefined;
 	}
 
 	async function onGenerarPase() {
-		if (!sectorDestinoId) {
+		const esOtroSector = sectorDestinoOpcion === 'otro';
+		if (!esOtroSector && !sectorDestinoId) {
 			errorPase = 'Elegí un sector destino.';
+			return;
+		}
+		if (esOtroSector && !sectorNombreManual.trim()) {
+			errorPase = 'Ingresá el nombre del sector destino.';
 			return;
 		}
 		if (requiereInspeccion && !inspeccionId) {
@@ -131,16 +145,23 @@
 		enviandoPase = true;
 		errorPase = '';
 		try {
-			await generarPase(expediente.id, {
-				sector_destino_id: sectorDestinoId,
+			const payload: Record<string, unknown> = {
 				motivo: motivoPase ? motivoPase.toUpperCase() : undefined,
-				fecha_vencimiento: fechaVencimientoPase ? fechaVencimientoPase + 'T00:00:00-03:00' : undefined,
-				inspeccion_id: requiereInspeccion ? inspeccionId : undefined,
-				subsector_mesa_entradas: requiereSubsectorMesa ? subsectorMesaEntradas : undefined
-			});
+				fecha_vencimiento: fechaVencimientoPase ? fechaVencimientoPase + 'T00:00:00-03:00' : undefined
+			};
+			if (esOtroSector) {
+				payload.sector_nombre = sectorNombreManual.toUpperCase();
+			} else {
+				payload.sector_destino_id = sectorDestinoId;
+				if (requiereInspeccion) payload.inspeccion_id = inspeccionId;
+				if (requiereSubsectorMesa) payload.subsector_mesa_entradas = subsectorMesaEntradas;
+			}
+			await generarPase(expediente.id, payload);
 			motivoPase = '';
 			fechaVencimientoPase = '';
+			sectorDestinoOpcion = undefined;
 			sectorDestinoId = undefined;
+			sectorNombreManual = '';
 			inspeccionId = undefined;
 			subsectorMesaEntradas = undefined;
 			await invalidateAll();
@@ -244,7 +265,7 @@
 				<input id="edit-infogov" bind:value={editInfogovNumero} class="w-full px-3 py-2 border border-border rounded-md text-sm" />
 			</div>
 		</div>
-		{#if errorEdicion}<p class="text-danger text-sm">{errorEdicion}</p>{/if}
+		{#if errorEdicion}<div class="bg-danger-bg border border-danger-border text-danger px-4 py-3 rounded-md text-sm" role="alert">{errorEdicion}</div>{/if}
 		<div class="flex gap-2">
 			<button type="submit" disabled={guardandoEdicion} class="bg-primary text-white px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-primary-dark disabled:opacity-50">
 				{guardandoEdicion ? 'Guardando...' : 'Guardar cambios'}
@@ -290,7 +311,7 @@
 		<label for="sector-destino" class="block text-sm font-medium mb-1">Sector destino</label>
 		<select
 			id="sector-destino"
-			bind:value={sectorDestinoId}
+			bind:value={sectorDestinoOpcion}
 			on:change={onSectorDestinoChange}
 			class="w-full px-3 py-2 border border-border rounded-md text-sm"
 		>
@@ -298,8 +319,16 @@
 			{#each data.sectores.filter((s) => s.id !== expediente.sector_actual_id) as sector}
 				<option value={sector.id}>{sector.nombre}</option>
 			{/each}
+			<option value="otro">Otro...</option>
 		</select>
 	</div>
+
+	{#if sectorDestinoOpcion === 'otro'}
+		<div>
+			<label for="sector-manual" class="block text-sm font-medium mb-1">Nombre del sector destino</label>
+			<input id="sector-manual" bind:value={sectorNombreManual} placeholder="Ingresar nombre del sector..." class="w-full px-3 py-2 border border-border rounded-md text-sm" style="text-transform: uppercase;" />
+		</div>
+	{/if}
 
 	{#if requiereInspeccion}
 		<div>
@@ -335,7 +364,7 @@
 		<input id="vencimiento-pase" type="date" bind:value={fechaVencimientoPase} class="w-full px-3 py-2 border border-border rounded-md text-sm" />
 	</div>
 
-	{#if errorPase}<p class="text-danger text-sm">{errorPase}</p>{/if}
+	{#if errorPase}<div class="bg-danger-bg border border-danger-border text-danger px-4 py-3 rounded-md text-sm" role="alert">{errorPase}</div>{/if}
 
 	<div>
 		<button type="submit" disabled={enviandoPase} class="bg-primary text-white px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-primary-dark disabled:opacity-50">

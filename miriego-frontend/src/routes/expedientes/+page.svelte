@@ -104,7 +104,7 @@
 <form on:submit|preventDefault={buscar} class="flex gap-4 items-end flex-wrap mb-6">
 	<div>
 		<label for="busqueda" class="block text-sm font-medium mb-1">Buscar</label>
-		<input id="busqueda" bind:value={busqueda} placeholder="Número, asunto, iniciador, DNI, CC, PP..." class="w-60 px-3 py-2 border border-border rounded-md text-sm" />
+		<input id="busqueda" bind:value={busqueda} placeholder="Número, GDE, asunto, iniciador, DNI, CC, PP..." class="w-60 px-3 py-2 border border-border rounded-md text-sm" />
 	</div>
 	<div>
 		<label for="fecha-desde" class="block text-sm font-medium mb-1">Desde</label>

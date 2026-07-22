@@ -284,7 +284,8 @@ INSERT INTO tipos_expediente (nombre) VALUES
     ('Presupuesto administrativo'),
     ('Solicitud de cruce de cañerias'),
     ('Solicitud de informe tecnico'),
-    ('Informes varios')
+    ('Informes varios'),
+    ('Tramites generales')
 ON CONFLICT (nombre) DO NOTHING;
 
 -- ============================================================================

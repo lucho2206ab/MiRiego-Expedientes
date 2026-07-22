@@ -10,6 +10,7 @@ from sqlalchemy import (
     Boolean,
     Column,
     Integer,
+    Sequence,
     String,
     Text,
     DateTime,
@@ -69,7 +70,8 @@ class Notificacion(Base):
         nullable=False,
         default=NotificadoTipo.tercero,
     )
-    notificado_ccpp = Column(String(20))
+    cc = Column(String(20))
+    pp = Column(String(20))
 
     notificado_nombre = Column(String(200))
     notificado_documento = Column(String(30))

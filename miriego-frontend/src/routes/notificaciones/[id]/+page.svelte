@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { goto } from '$app/navigation';
-	import { actualizarNotificacion } from '$lib/api/notificaciones';
+	import { actualizarNotificacion, imprimirNotificacion } from '$lib/api/notificaciones';
 
 	export let data: PageData;
 	$: n = data.notificacion;
@@ -11,6 +11,7 @@
 	let guardando = false;
 	let msgExito = '';
 	let msgError = '';
+	let imprimiendo = false;
 
 	function colorEstado(e: string): string {
 		switch (e) {
@@ -40,6 +41,18 @@
 		}
 	}
 
+	async function onImprimir() {
+		imprimiendo = true;
+		msgError = '';
+		try {
+			await imprimirNotificacion(n.id);
+		} catch (e) {
+			msgError = e instanceof Error ? e.message : 'Error al generar la cédula';
+		} finally {
+			imprimiendo = false;
+		}
+	}
+
 	function fmtFecha(s: string | null | undefined): string {
 		if (!s) return '—';
 		return new Date(s).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -51,7 +64,10 @@
 		<a href="/notificaciones" class="text-primary text-sm hover:underline">&larr; Volver al listado</a>
 		<h1 class="text-2xl font-bold mt-1">{n?.codigo_notificacion ?? '...'}</h1>
 	</div>
-	<div class="text-right">
+	<div class="flex gap-2 items-center">
+		<button on:click={onImprimir} disabled={imprimiendo} class="bg-white border border-border text-sm px-3 py-1.5 rounded-md cursor-pointer hover:bg-bg disabled:opacity-50">
+			{imprimiendo ? 'Generando...' : 'Imprimir cédula'}
+		</button>
 		<span class="inline-block px-3 py-1 rounded-full text-sm font-semibold" style="color: {colorEstado(n?.estado ?? '')}; background: {n?.estado === 'vencida' ? '#fee2e2' : n?.estado === 'cerrada' ? '#f3f4f6' : '#eef2ee'}">{n?.estado ?? ''}</span>
 	</div>
 </div>
@@ -67,7 +83,8 @@
 			{#if n.notificado_documento}<div class="flex gap-2"><dt class="text-text-muted">Documento:</dt><dd>{n.notificado_documento}</dd></div>{/if}
 			{#if n.notificado_domicilio}<div class="flex gap-2"><dt class="text-text-muted">Domicilio:</dt><dd>{n.notificado_domicilio}</dd></div>{/if}
 			{#if n.notificado_contacto}<div class="flex gap-2"><dt class="text-text-muted">Contacto:</dt><dd>{n.notificado_contacto}</dd></div>{/if}
-			{#if n.notificado_ccpp}<div class="flex gap-2"><dt class="text-text-muted">CCPP:</dt><dd>{n.notificado_ccpp}</dd></div>{/if}
+			{#if n.cc}<div class="flex gap-2"><dt class="text-text-muted">CC:</dt><dd>{n.cc}</dd></div>{/if}
+			{#if n.pp}<div class="flex gap-2"><dt class="text-text-muted">PP:</dt><dd>{n.pp}</dd></div>{/if}
 		</dl>
 	</div>
 
@@ -113,7 +130,7 @@
 			</button>
 		</div>
 		{#if msgExito}<p class="text-primary text-sm mt-2">{msgExito}</p>{/if}
-		{#if msgError}<p class="text-danger text-sm mt-2">{msgError}</p>{/if}
+		{#if msgError}<div class="bg-danger-bg border border-danger-border text-danger px-4 py-3 rounded-md text-sm mt-2" role="alert">{msgError}</div>{/if}
 	</div>
 </div>
 {:else}

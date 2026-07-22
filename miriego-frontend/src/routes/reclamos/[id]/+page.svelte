@@ -235,7 +235,7 @@
 				<input id="edit-direccion" bind:value={editDireccion} class="w-full px-3 py-2 border border-border rounded-md text-sm" />
 			</div>
 		</div>
-		{#if errorEdicion}<p class="text-danger text-sm">{errorEdicion}</p>{/if}
+		{#if errorEdicion}<div class="bg-danger-bg border border-danger-border text-danger px-4 py-3 rounded-md text-sm" role="alert">{errorEdicion}</div>{/if}
 		<div class="flex gap-2">
 			<button type="submit" disabled={guardandoEdicion} class="bg-primary text-white px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-primary-dark disabled:opacity-50">
 				{guardandoEdicion ? 'Guardando...' : 'Guardar cambios'}

@@ -19,7 +19,7 @@ from sqlalchemy import select, or_
 
 from app.core.database import get_db
 from app.models.expediente import Expediente, Pase, Nota, Sector
-from app.models.reclamo import Reclamo
+from app.models.reclamo import Reclamo, Canal
 from sqlalchemy import func as sa_func
 from app.schemas.expediente import (
     ExpedienteCreate,
@@ -62,6 +62,7 @@ def listar_expedientes(
             query = query.where(
                 or_(
                     Expediente.numero_expediente.ilike(pattern),
+                    Expediente.gde_numero.ilike(pattern),
                     Expediente.asunto.ilike(pattern),
                     Expediente.iniciador_nombre.ilike(pattern),
                     Expediente.iniciador_dni_cuit.ilike(pattern),
@@ -70,9 +71,9 @@ def listar_expedientes(
                 )
             )
         if fecha_desde is not None:
-            query = query.where(Expediente.fecha_inicio >= datetime.combine(fecha_desde, datetime.min.time()))
+            query = query.where(Expediente.fecha_ultima_actualizacion >= datetime.combine(fecha_desde, datetime.min.time()))
         if fecha_hasta is not None:
-            query = query.where(Expediente.fecha_inicio <= datetime.combine(fecha_hasta, datetime.max.time()))
+            query = query.where(Expediente.fecha_ultima_actualizacion <= datetime.combine(fecha_hasta, datetime.max.time()))
 
         # Total de registros (sin LIMIT)
         total = db.scalar(select(sa_func.count()).select_from(query.subquery())) or 0
@@ -166,6 +167,17 @@ def crear_expediente(payload: ExpedienteCreate, db: Session = Depends(get_db)):
     if not sector:
         raise HTTPException(400, "El sector indicado no existe")
 
+    # Validar que el CC (Codigo de Cauce) corresponda a la inspeccion seleccionada
+    if payload.inspeccion_id and payload.iniciador_cc:
+        canal = db.scalar(
+            select(Canal).where(Canal.codigo_canal == payload.iniciador_cc.strip().upper())
+        )
+        if canal and canal.inspeccion_id != payload.inspeccion_id:
+            raise HTTPException(
+                400,
+                "El Codigo de Cauce no corresponde a la Inspeccion seleccionada",
+            )
+
     data = payload.model_dump()
     reclamo_id = data.pop("reclamo_id", None)
     # Remover campos auxiliares que no van a la tabla
@@ -245,6 +257,7 @@ SUBSECTORES_MESA_ENTRADAS_PERMITIDOS = {
     "Reserva",
     "Archivo Mesa de Entradas",
     "Archivo Deposito",
+    "Recepcion",
 }
 
 
@@ -264,9 +277,21 @@ def generar_pase(expediente_id: int, payload: PaseCreate, db: Session = Depends(
     if not expediente:
         raise HTTPException(404, "Expediente no encontrado")
 
-    destino = db.get(Sector, payload.sector_destino_id)
-    if not destino:
-        raise HTTPException(400, "El sector_destino_id indicado no existe")
+    # Resolver sector destino: por id o por nombre (caso "Otro")
+    if payload.sector_destino_id:
+        destino = db.get(Sector, payload.sector_destino_id)
+        if not destino:
+            raise HTTPException(400, "El sector_destino_id indicado no existe")
+    elif payload.sector_nombre and payload.sector_nombre.strip():
+        nombre_sector = payload.sector_nombre.strip().upper()
+        destino = db.scalar(select(Sector).where(Sector.nombre == nombre_sector))
+        if not destino:
+            destino = Sector(nombre=nombre_sector)
+            db.add(destino)
+            db.flush()
+        payload.sector_destino_id = destino.id
+    else:
+        raise HTTPException(400, "Debés indicar sector_destino_id o sector_nombre")
 
     if payload.sector_destino_id == expediente.sector_actual_id:
         raise HTTPException(400, "El expediente ya esta en ese sector")
