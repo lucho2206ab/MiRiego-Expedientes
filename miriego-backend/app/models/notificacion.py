@@ -72,6 +72,7 @@ class Notificacion(Base):
     )
     cc = Column(String(20))
     pp = Column(String(20))
+    inspeccion_id = Column(Integer)
 
     notificado_nombre = Column(String(200))
     notificado_documento = Column(String(30))

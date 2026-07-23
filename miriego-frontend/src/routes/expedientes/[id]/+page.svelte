@@ -43,6 +43,7 @@
 	let editIniciadorPp = '';
 	let editIniciadorEmail = '';
 	let editIniciadorTelefono = '';
+	let editAcumuladoNumero = '';
 	let editGdeNumero = '';
 	let editInfogovNumero = '';
 	let editFechaVencimiento = '';
@@ -59,6 +60,7 @@
 		editIniciadorPp = expediente.iniciador_pp ?? '';
 		editIniciadorEmail = expediente.iniciador_email ?? '';
 		editIniciadorTelefono = expediente.iniciador_telefono ?? '';
+		editAcumuladoNumero = expediente.expediente_acumulado_numero ?? '';
 		editGdeNumero = expediente.gde_numero ?? '';
 		editInfogovNumero = expediente.infogov_numero ?? '';
 		editFechaVencimiento = expediente.fecha_vencimiento ? expediente.fecha_vencimiento.substring(0, 10) : '';
@@ -85,6 +87,7 @@
 				iniciador_pp: editIniciadorPp ? editIniciadorPp.toUpperCase() : undefined,
 				iniciador_email: editIniciadorEmail || undefined,
 				iniciador_telefono: editIniciadorTelefono || undefined,
+				expediente_acumulado_numero: editAcumuladoNumero || undefined,
 				gde_numero: editGdeNumero || undefined,
 				infogov_numero: editInfogovNumero || undefined,
 				fecha_vencimiento: editFechaVencimiento ? editFechaVencimiento + 'T00:00:00-03:00' : undefined
@@ -205,6 +208,9 @@
 		<span class="text-base font-normal text-text-muted ml-2">(GDE: {expediente.gde_numero})</span>
 	{/if}
 </h1>
+{#if expediente.expediente_acumulado_numero}
+	<p class="text-sm text-text-muted mb-3">Acumulado: {expediente.expediente_acumulado_numero}</p>
+{/if}
 
 <div class="flex gap-2 mb-3">
 	{#if !editando}
@@ -255,6 +261,10 @@
 			<div class="md:col-span-2">
 				<label for="edit-descripcion" class="block text-sm font-medium mb-1">Descripcion</label>
 				<textarea id="edit-descripcion" bind:value={editDescripcion} rows="2" class="w-full px-3 py-2 border border-border rounded-md text-sm"></textarea>
+			</div>
+			<div>
+				<label for="edit-acumulado" class="block text-sm font-medium mb-1">N° Expediente Acumulado</label>
+				<input id="edit-acumulado" bind:value={editAcumuladoNumero} class="w-full px-3 py-2 border border-border rounded-md text-sm" />
 			</div>
 			<div>
 				<label for="edit-gde" class="block text-sm font-medium mb-1">N° GDE</label>

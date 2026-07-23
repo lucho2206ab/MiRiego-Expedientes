@@ -54,6 +54,7 @@ psql -U postgres -d miriego -f miriego-backend/db/reclamos_v3_cc_pp.sql
 # 4. Optional migrations (new columns, indexes)
 psql -U postgres -d miriego -f miriego-backend/db/fix_iniciador_contacto.sql
 psql -U postgres -d miriego -f miriego-backend/db/add_indexes.sql
+psql -U postgres -d miriego -f miriego-backend/db/add_inspeccion_id_notificaciones.sql
 
 # 5. Notificaciones + additional migrations
 psql -U postgres -d miriego -f miriego-backend/db/notificaciones_schema.sql
@@ -222,6 +223,7 @@ All 4 must show `Running` / `Automatic`.
 - **No auth yet** — both READMEs list it as next step.
 - **`.env.example` in backend** has `FRONTEND_ORIGIN=http://localhost:5175` — update to `5174` when copying.
 - **NSSM + uvicorn.exe + spaces in path:** NSSM cannot launch `uvicorn.exe` directly when the path contains spaces (e.g., "Mesa de Entradas"). Always use `python.exe -m uvicorn` as the backend service executable instead.
-- **PUBLIC_API_URL is baked at build time** — `$env/static/public` in SvelteKit. Changing `.env` requires `npm run build` + service restart to take effect.
+- **PUBLIC_API_URL is baked at build time** — `$env/static/public` in SvelteKit. In dev, Vite proxies `/api/*` → `localhost:8000` (see `vite.config.js`). In production, Caddy does the same. Always use `/api` as the value.
+- **No print blob through apiFetch** — `imprimirNotificacion` uses raw `fetch()` because it returns a `.docx` blob, not JSON. Still uses `PUBLIC_API_URL` for the base URL.
 - **Frontend port in production is 3000** (set via `PORT` env var), not 5174. The 5174 port is only for `npm run dev`.
 - **Caddy strips `/api` prefix** before proxying to the backend, so FastAPI receives routes like `/expedientes` (without the prefix).

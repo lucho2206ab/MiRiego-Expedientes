@@ -31,6 +31,7 @@ from app.schemas.notificacion import (
     NotificacionUpdate,
     PaginatedNotificaciones,
 )
+from app.models.notificacion import NotificadoTipo
 
 router = APIRouter(prefix="/notificaciones", tags=["notificaciones"])
 
@@ -150,7 +151,23 @@ def detalle_notificacion(notificacion_id: int, db: Session = Depends(get_db)):
     if not notificacion:
         raise HTTPException(404, "Notificación no encontrada")
     _resolver_numeros_expediente(db, [notificacion])
-    return notificacion
+    # Resolver inspección/inspector para el detalle
+    inspeccion_nombre = ""
+    inspector_nombre = ""
+    if notificacion.cc:
+        ctx_cc = _resolver_inspeccion_desde_cc(db, notificacion.cc)
+        inspeccion_nombre = ctx_cc["inspeccion_nombre"]
+        inspector_nombre = ctx_cc["inspector_nombre"]
+    if not inspeccion_nombre and notificacion.inspeccion_id:
+        from app.models.reclamo import Inspeccion as InspeccionModel
+        insp = db.get(InspeccionModel, notificacion.inspeccion_id)
+        if insp:
+            inspeccion_nombre = insp.nombre or ""
+            inspector_nombre = insp.inspector or ""
+    data = NotificacionOut.model_validate(notificacion).model_dump()
+    data["inspeccion_nombre"] = inspeccion_nombre
+    data["inspector_nombre"] = inspector_nombre
+    return data
 
 
 # ---------------------------------------------------------------------------
@@ -164,8 +181,10 @@ def actualizar_notificacion(notificacion_id: int, payload: NotificacionUpdate, d
         raise HTTPException(404, "Notificación no encontrada")
 
     cambios = payload.model_dump(exclude_unset=True)
+    print(f"[PATCH notificacion {notificacion_id}] cambios={cambios}")
 
     if "estado" in cambios:
+        print(f"[PATCH] cambiando estado de '{notificacion.estado}' a '{cambios['estado']}'")
         notificacion.estado = cambios["estado"]
 
     CAMPOS = [
@@ -173,7 +192,7 @@ def actualizar_notificacion(notificacion_id: int, payload: NotificacionUpdate, d
         "notificado_nombre", "notificado_documento", "notificado_domicilio",
         "notificado_contacto", "motivo", "descripcion",
         "fecha_notificacion", "fecha_vencimiento_respuesta", "observaciones",
-        "cc", "pp",
+        "cc", "pp", "inspeccion_id",
     ]
     for campo in CAMPOS:
         if campo in cambios:
@@ -182,6 +201,7 @@ def actualizar_notificacion(notificacion_id: int, payload: NotificacionUpdate, d
     notificacion.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(notificacion)
+    print(f"[PATCH] después de commit: estado={notificacion.estado}")
     return notificacion
 
 
@@ -198,18 +218,31 @@ def imprimir_cedula(notificacion_id: int, db: Session = Depends(get_db)):
     if not _TEMPLATE_PATH.exists():
         raise HTTPException(500, "Plantilla de notificación no encontrada en el servidor")
 
-    # Resolver inspección/inspector desde CC
-    ctx_cc = _resolver_inspeccion_desde_cc(db, notificacion.cc)
+    es_tercero = notificacion.notificado_tipo == NotificadoTipo.tercero
+
+    # Resolver inspección/inspector
+    inspeccion_nombre = ""
+    inspector_nombre = ""
+    if notificacion.cc:
+        ctx_cc = _resolver_inspeccion_desde_cc(db, notificacion.cc)
+        inspeccion_nombre = ctx_cc["inspeccion_nombre"]
+        inspector_nombre = ctx_cc["inspector_nombre"]
+    if not inspeccion_nombre and notificacion.inspeccion_id:
+        from app.models.reclamo import Inspeccion as InspeccionModel
+        insp = db.get(InspeccionModel, notificacion.inspeccion_id)
+        if insp:
+            inspeccion_nombre = insp.nombre or ""
+            inspector_nombre = insp.inspector or ""
 
     context = {
         "nombre": notificacion.notificado_nombre or "",
-        "cc": notificacion.cc or "",
-        "pp": notificacion.pp or "",
+        "cc": "" if es_tercero else (notificacion.cc or ""),
+        "pp": "" if es_tercero else (notificacion.pp or ""),
         "codigo": notificacion.codigo_notificacion or "",
         "domicilio": notificacion.notificado_domicilio or "",
         "descripcion": notificacion.descripcion or "",
-        "inspeccion_nombre": ctx_cc["inspeccion_nombre"],
-        "inspector_nombre": ctx_cc["inspector_nombre"],
+        "inspeccion_nombre": inspeccion_nombre,
+        "inspector_nombre": inspector_nombre,
     }
 
     from docxtpl import DocxTemplate

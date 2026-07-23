@@ -1,27 +1,42 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import { goto } from '$app/navigation';
-	import { actualizarNotificacion, imprimirNotificacion } from '$lib/api/notificaciones';
+	import { actualizarNotificacion, imprimirNotificacion, obtenerNotificacion } from '$lib/api/notificaciones';
 
 	export let data: PageData;
 	$: n = data.notificacion;
 
 	const ESTADOS = ['emitida', 'notificada', 'respondida', 'vencida', 'cumplida', 'cerrada'] as const;
-	$: nuevoEstado = n?.estado ?? 'emitida';
+	let nuevoEstado: string = '';
 	let guardando = false;
 	let msgExito = '';
 	let msgError = '';
 	let imprimiendo = false;
 
+	$: if (n && !nuevoEstado) {
+		nuevoEstado = n.estado;
+	}
+
 	function colorEstado(e: string): string {
 		switch (e) {
-			case 'emitida': return 'var(--color-primary)';
-			case 'notificada': return '#2563eb';
-			case 'respondida': return '#7c3aed';
-			case 'vencida': return 'var(--color-danger)';
-			case 'cumplida': return '#059669';
-			case 'cerrada': return '#6b7280';
+			case 'emitida': return '#16a34a';
+			case 'notificada': return '#16a34a';
+			case 'respondida': return '#16a34a';
+			case 'vencida': return '#dc2626';
+			case 'cumplida': return '#dc2626';
+			case 'cerrada': return '#dc2626';
 			default: return 'inherit';
+		}
+	}
+
+	function bgEstado(e: string): string {
+		switch (e) {
+			case 'emitida': return '#dcfce7';
+			case 'notificada': return '#dcfce7';
+			case 'respondida': return '#dcfce7';
+			case 'vencida': return '#fee2e2';
+			case 'cumplida': return '#fee2e2';
+			case 'cerrada': return '#fee2e2';
+			default: return '#f3f4f6';
 		}
 	}
 
@@ -30,11 +45,20 @@
 		guardando = true;
 		msgError = '';
 		msgExito = '';
+		const estadoAnterior = n.estado;
+		const estadoObjetivo = nuevoEstado;
 		try {
-			await actualizarNotificacion(n.id, { estado: nuevoEstado });
-			n = { ...n, estado: nuevoEstado };
-			msgExito = 'Estado actualizado.';
+			await actualizarNotificacion(n.id, { estado: estadoObjetivo });
+			const refetch = await obtenerNotificacion(n.id);
+			n = refetch;
+			nuevoEstado = refetch.estado;
+			if (refetch.estado === estadoObjetivo) {
+				msgExito = 'Estado actualizado a "' + refetch.estado + '".';
+			} else {
+				msgError = 'El servidor guardó "' + refetch.estado + '" en vez de "' + estadoObjetivo + '".';
+			}
 		} catch (e) {
+			nuevoEstado = estadoAnterior;
 			msgError = e instanceof Error ? e.message : 'Error al actualizar';
 		} finally {
 			guardando = false;
@@ -68,7 +92,7 @@
 		<button on:click={onImprimir} disabled={imprimiendo} class="bg-white border border-border text-sm px-3 py-1.5 rounded-md cursor-pointer hover:bg-bg disabled:opacity-50">
 			{imprimiendo ? 'Generando...' : 'Imprimir cédula'}
 		</button>
-		<span class="inline-block px-3 py-1 rounded-full text-sm font-semibold" style="color: {colorEstado(n?.estado ?? '')}; background: {n?.estado === 'vencida' ? '#fee2e2' : n?.estado === 'cerrada' ? '#f3f4f6' : '#eef2ee'}">{n?.estado ?? ''}</span>
+		<span class="inline-block px-3 py-1 rounded-full text-sm font-semibold" style="color: {colorEstado(n?.estado ?? '')}; background: {bgEstado(n?.estado ?? '')}">{n?.estado ?? ''}</span>
 	</div>
 </div>
 
@@ -83,8 +107,12 @@
 			{#if n.notificado_documento}<div class="flex gap-2"><dt class="text-text-muted">Documento:</dt><dd>{n.notificado_documento}</dd></div>{/if}
 			{#if n.notificado_domicilio}<div class="flex gap-2"><dt class="text-text-muted">Domicilio:</dt><dd>{n.notificado_domicilio}</dd></div>{/if}
 			{#if n.notificado_contacto}<div class="flex gap-2"><dt class="text-text-muted">Contacto:</dt><dd>{n.notificado_contacto}</dd></div>{/if}
-			{#if n.cc}<div class="flex gap-2"><dt class="text-text-muted">CC:</dt><dd>{n.cc}</dd></div>{/if}
-			{#if n.pp}<div class="flex gap-2"><dt class="text-text-muted">PP:</dt><dd>{n.pp}</dd></div>{/if}
+			{#if n.notificado_tipo === 'regante'}
+				{#if n.cc}<div class="flex gap-2"><dt class="text-text-muted">CC:</dt><dd>{n.cc}</dd></div>{/if}
+				{#if n.pp}<div class="flex gap-2"><dt class="text-text-muted">PP:</dt><dd>{n.pp}</dd></div>{/if}
+			{/if}
+			{#if n.inspeccion_nombre}<div class="flex gap-2"><dt class="text-text-muted">Inspección:</dt><dd>{n.inspeccion_nombre}</dd></div>{/if}
+			{#if n.inspector_nombre}<div class="flex gap-2"><dt class="text-text-muted">Inspector:</dt><dd>{n.inspector_nombre}</dd></div>{/if}
 		</dl>
 	</div>
 
@@ -125,7 +153,7 @@
 					{/each}
 				</select>
 			</div>
-			<button on:click={cambiarEstado} disabled={guardando || nuevoEstado === n.estado} class="bg-primary text-white px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-primary-dark disabled:opacity-50">
+			<button on:click={cambiarEstado} disabled={guardando} class="bg-primary text-white px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-primary-dark disabled:opacity-50">
 				{guardando ? 'Guardando...' : 'Actualizar'}
 			</button>
 		</div>

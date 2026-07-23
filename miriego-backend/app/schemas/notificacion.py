@@ -38,6 +38,7 @@ class NotificacionCreate(BaseModel):
     notificado_tipo: NotificadoTipo = NotificadoTipo.tercero
     cc: Optional[str] = None
     pp: Optional[str] = None
+    inspeccion_id: Optional[int] = None
     notificado_nombre: Optional[str] = None
     notificado_documento: Optional[str] = None
     notificado_domicilio: Optional[str] = None
@@ -64,6 +65,7 @@ class NotificacionOut(BaseModel):
     notificado_tipo: NotificadoTipo
     cc: Optional[str] = None
     pp: Optional[str] = None
+    inspeccion_id: Optional[int] = None
     notificado_nombre: Optional[str] = None
     notificado_documento: Optional[str] = None
     notificado_domicilio: Optional[str] = None
@@ -90,6 +92,7 @@ class NotificacionUpdate(BaseModel):
     expediente_id: Optional[int] = None
     cc: Optional[str] = None
     pp: Optional[str] = None
+    inspeccion_id: Optional[int] = None
     notificado_nombre: Optional[str] = None
     notificado_documento: Optional[str] = None
     notificado_domicilio: Optional[str] = None
@@ -103,7 +106,8 @@ class NotificacionUpdate(BaseModel):
 
 class NotificacionDetalleOut(NotificacionOut):
     """Notificación completa para la pantalla de detalle."""
-    pass
+    inspeccion_nombre: Optional[str] = None
+    inspector_nombre: Optional[str] = None
 
 
 class PaginatedNotificaciones(BaseModel):

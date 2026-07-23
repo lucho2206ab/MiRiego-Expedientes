@@ -10,6 +10,7 @@
 	let notificadoTipo: NotificadoTipo = 'tercero';
 	let cc = '';
 	let pp = '';
+	let inspeccionId: number | undefined;
 	let notificadoNombre = '';
 	let notificadoDocumento = '';
 	let notificadoDomicilio = '';
@@ -52,6 +53,7 @@
 				notificado_tipo: notificadoTipo,
 				cc: cc ? cc.toUpperCase() : undefined,
 				pp: pp ? pp.toUpperCase() : undefined,
+				inspeccion_id: notificadoTipo === 'tercero' ? inspeccionId : undefined,
 				notificado_nombre: notificadoNombre ? notificadoNombre.toUpperCase() : undefined,
 				notificado_documento: notificadoDocumento || undefined,
 				notificado_domicilio: notificadoDomicilio ? notificadoDomicilio.toUpperCase() : undefined,
@@ -104,13 +106,25 @@
 			</div>
 		{/if}
 
+		{#if notificadoTipo === 'tercero'}
+			<div class="mt-4">
+				<label for="n-inspeccion" class="block text-sm font-medium mb-1">Inspección</label>
+				<select id="n-inspeccion" bind:value={inspeccionId} class="w-full px-3 py-2 border border-border rounded-md text-sm">
+					<option value={undefined}>Seleccionar inspección...</option>
+					{#each data.inspecciones as inspeccion}
+						<option value={inspeccion.id}>{inspeccion.nombre}</option>
+					{/each}
+				</select>
+			</div>
+		{/if}
+
 		<div class="grid grid-cols-2 gap-3 mt-4">
 			<div>
 				<label for="n-nombre" class="block text-sm font-medium mb-1">Nombre / Razón Social</label>
 				<input id="n-nombre" bind:value={notificadoNombre} placeholder="Nombre completo o razón social" class="w-full px-3 py-2 border border-border rounded-md text-sm" />
 			</div>
 			<div>
-				<label for="n-documento" class="block text-sm font-medium mb-1">Documento (DNI/CUIT)</label>
+				<label for="n-documento" class="block text-sm font-medium mb-1">Documento (DNI/CUIT) (opcional)</label>
 				<input id="n-documento" bind:value={notificadoDocumento} placeholder="DNI, CUIT o CUIL" class="w-full px-3 py-2 border border-border rounded-md text-sm" />
 			</div>
 			<div class="col-span-2">

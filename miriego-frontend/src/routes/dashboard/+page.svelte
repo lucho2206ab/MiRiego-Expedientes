@@ -94,6 +94,22 @@
 		if (!s) return '—';
 		return new Date(s).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 	}
+
+	function limpiarFiltrosExp() {
+		estadoExp = 'vencido';
+		diasUmbral = 5;
+		conteoExp = [];
+		detalleExp = [];
+		sectorDetalleExp = null;
+	}
+
+	function limpiarFiltrosRec() {
+		estadoRec = 'vencido';
+		horasUmbral = 6;
+		conteoRec = [];
+		detalleRec = [];
+		inspeccionDetalleRec = null;
+	}
 </script>
 
 <h1 class="text-2xl font-bold mb-4">Dashboard</h1>
@@ -129,6 +145,7 @@
 			<input id="f-dias" type="number" bind:value={diasUmbral} min="1" max="365" class="w-20 px-3 py-2 border border-border rounded-md text-sm" />
 		</div>
 		<button on:click={cargarConteoExp} class="bg-primary text-white px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-primary-dark">Consultar</button>
+		<button on:click={limpiarFiltrosExp} class="bg-white border border-border px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-bg">Limpiar</button>
 	</div>
 
 	{#if cargandoExp}
@@ -196,6 +213,7 @@
 			<input id="f-horas" type="number" bind:value={horasUmbral} min="1" max="720" class="w-20 px-3 py-2 border border-border rounded-md text-sm" />
 		</div>
 		<button on:click={cargarConteoRec} class="bg-primary text-white px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-primary-dark">Consultar</button>
+		<button on:click={limpiarFiltrosRec} class="bg-white border border-border px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-bg">Limpiar</button>
 	</div>
 
 	{#if cargandoRec}

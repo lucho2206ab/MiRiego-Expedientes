@@ -46,9 +46,20 @@
 		if (busqueda.trim()) params.set('q', busqueda.trim());
 		if (fechaDesde) params.set('fecha_desde', fechaDesde);
 		if (fechaHasta) params.set('fecha_hasta', fechaHasta);
-		// Resetear a página 1 al filtrar
 		const qs = params.toString();
 		goto(`/reclamos${qs ? `?${qs}` : ''}`, { replaceState: true, keepFocus: true });
+	}
+
+	function limpiarFiltros() {
+		filtroEstado = '';
+		filtroInspeccion = '';
+		filtroCanal = '';
+		filtroTipo = '';
+		filtroPrioridad = '';
+		busqueda = '';
+		fechaDesde = '';
+		fechaHasta = '';
+		goto('/reclamos', { replaceState: true, keepFocus: true });
 	}
 
 	function navigatePage(e: CustomEvent<number>) {
@@ -259,8 +270,9 @@
 			<option value="critica">Crítica</option>
 		</select>
 	</div>
-	<div class="flex items-end">
+	<div class="flex items-end gap-2">
 		<button type="submit" class="bg-primary text-white px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-primary-dark">Filtrar</button>
+		<button type="button" on:click={limpiarFiltros} class="bg-white border border-border px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-bg">Limpiar</button>
 	</div>
 </form>
 

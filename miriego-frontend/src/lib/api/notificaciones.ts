@@ -58,6 +58,7 @@ export function actualizarNotificacion(
 		fecha_notificacion?: string;
 		fecha_vencimiento_respuesta?: string;
 		observaciones?: string;
+		inspeccion_id?: number | null;
 	}
 ) {
 	return apiFetch<Notificacion>(`/notificaciones/${id}`, {
@@ -79,7 +80,10 @@ export function listarMediosNotificacion() {
 // --- Imprimir cédula ---
 
 export async function imprimirNotificacion(id: number): Promise<void> {
-	const res = await fetch(`${PUBLIC_API_URL}/notificaciones/${id}/imprimir`, { method: 'POST' });
+	const res = await fetch(`${PUBLIC_API_URL}/notificaciones/${id}/imprimir`, {
+		method: 'POST',
+		headers: { 'Accept': 'application/octet-stream' }
+	});
 	if (!res.ok) {
 		const detalle = await res.text();
 		let mensaje = detalle;

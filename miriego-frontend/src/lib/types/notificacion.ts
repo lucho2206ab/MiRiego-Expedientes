@@ -37,6 +37,7 @@ export interface Notificacion {
 	notificado_tipo: NotificadoTipo;
 	cc?: string | null;
 	pp?: string | null;
+	inspeccion_id?: number | null;
 	notificado_nombre?: string | null;
 	notificado_documento?: string | null;
 	notificado_domicilio?: string | null;
@@ -55,7 +56,10 @@ export interface Notificacion {
 	numero_expediente?: string | null;
 }
 
-export interface NotificacionDetalle extends Notificacion {}
+export interface NotificacionDetalle extends Notificacion {
+	inspeccion_nombre?: string | null;
+	inspector_nombre?: string | null;
+}
 
 export interface NotificacionCreatePayload {
 	tipo_notificacion_id?: number | null;
@@ -64,6 +68,7 @@ export interface NotificacionCreatePayload {
 	notificado_tipo: NotificadoTipo;
 	cc?: string;
 	pp?: string;
+	inspeccion_id?: number;
 	notificado_nombre?: string;
 	notificado_documento?: string;
 	notificado_domicilio?: string;

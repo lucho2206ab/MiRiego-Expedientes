@@ -32,6 +32,15 @@
 		goto(`/notificaciones${qs ? `?${qs}` : ''}`, { replaceState: true, keepFocus: true });
 	}
 
+	function limpiarFiltros() {
+		filtroEstado = '';
+		filtroNotificadoTipo = '';
+		busqueda = '';
+		fechaDesde = '';
+		fechaHasta = '';
+		goto('/notificaciones', { replaceState: true, keepFocus: true });
+	}
+
 	function navigatePage(e: CustomEvent<number>) {
 		const params = new URLSearchParams();
 		if (filtroEstado) params.set('estado', filtroEstado);
@@ -55,21 +64,25 @@
 
 	function colorEstado(e: string): string {
 		switch (e) {
-			case 'emitida': return 'var(--color-primary)';
-			case 'notificada': return '#2563eb';
-			case 'respondida': return '#7c3aed';
-			case 'vencida': return 'var(--color-danger)';
-			case 'cumplida': return '#059669';
-			case 'cerrada': return '#6b7280';
+			case 'emitida': return '#16a34a';
+			case 'notificada': return '#16a34a';
+			case 'respondida': return '#16a34a';
+			case 'vencida': return '#dc2626';
+			case 'cumplida': return '#dc2626';
+			case 'cerrada': return '#dc2626';
 			default: return 'inherit';
 		}
 	}
 
 	function bgEstado(e: string): string {
 		switch (e) {
+			case 'emitida': return '#dcfce7';
+			case 'notificada': return '#dcfce7';
+			case 'respondida': return '#dcfce7';
 			case 'vencida': return '#fee2e2';
-			case 'cerrada': return '#f3f4f6';
-			default: return '#eef2ee';
+			case 'cumplida': return '#fee2e2';
+			case 'cerrada': return '#fee2e2';
+			default: return '#f3f4f6';
 		}
 	}
 
@@ -178,8 +191,9 @@
 			<option value="tercero">Tercero</option>
 		</select>
 	</div>
-	<div class="flex items-end">
+	<div class="flex items-end gap-2">
 		<button type="submit" class="bg-primary text-white px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-primary-dark">Filtrar</button>
+		<button type="button" on:click={limpiarFiltros} class="bg-white border border-border px-4 py-2 rounded-md text-sm cursor-pointer hover:bg-bg">Limpiar</button>
 	</div>
 </form>
 
