@@ -156,6 +156,16 @@ Rule: `MiRiego - HTTP (80)` — Inbound, TCP port 80, Allow, all profiles.
 
 `install-services.bat` in the repo root. Must be run **as Administrator**. Cleans up existing services, creates fresh ones, starts them, and creates the firewall rule.
 
+### Deploy script (after git pull)
+
+`deploy.bat` in the repo root. Must be run **as Administrator**. Does:
+1. `git pull` in the project directory
+2. Applies SQL migrations (`add_inspeccion_id_notificaciones.sql`)
+3. `npm install` + `npm run build` for the frontend
+4. Restarts MiRiegoAPI, MiRiegoFrontend, MiRiegoProxy
+
+If a SQL migration fails because the column already exists, that's normal — it means it was already applied.
+
 ### Rebuilding after code changes
 
 ```bash
